@@ -145,6 +145,7 @@ sub list_annotations
 
     my $scope = delete $params{scope} || 'global';
     my $mailbox = delete $params{mailbox} || 'user.cassandane';
+    my $mailboxid = delete $params{mailboxid};
     my $tombstones = delete $params{tombstones};
     my $withmdata = delete $params{withmdata};
     my $instance = delete $params{instance} || $self->{instance};
@@ -161,9 +162,8 @@ sub list_annotations
     }
     elsif ($scope eq 'message')
     {
-        my $mb = $mailbox;
-        $mb =~ s/\./\//g;
-        $mailbox_db = "$basedir/data/$mb/cyrus.annotations";
+        my $dir = $instance->folder_to_directory($mailboxid);
+        $mailbox_db = "$dir/cyrus.annotations";
     }
     else
     {
@@ -258,13 +258,14 @@ sub list_uids
 
 sub check_msg_annotation_replication
 {
-    my ($self, $master_store, $replica_store, %params) = @_;
+    my ($self, $inboxid, $master_store, $replica_store, %params) = @_;
 
     my $master_annots = $self->list_annotations((%params,
             scope => 'message',
             instance => $self->{instance},
             withmdata => 1,
             tombstones => 1,
+            mailboxid => $inboxid,
             uids => $self->list_uids($master_store),
         ));
     my $replica_annots = $self->list_annotations((%params,
@@ -272,6 +273,7 @@ sub check_msg_annotation_replication
             instance => $self->{replica},
             withmdata => 1,
             tombstones => 1,
+            mailboxid => $inboxid,
             uids => $self->list_uids($replica_store),
         ));
 
@@ -1116,8 +1118,12 @@ sub test_msg_replication_new_mas
     xlog $self, "After replication, message is now present on the replica";
     $self->check_messages(\%replica_exp, store => $replica_store);
 
+    my $talk = $master_store->get_client();
+    my $status = $talk->status("INBOX", "(mailboxid)");
+    my $inboxid = $status->{mailboxid}[0];
+
     xlog $self, "Check that annotations in the master and replica DB match";
-    $self->check_msg_annotation_replication($master_store, $replica_store);
+    $self->check_msg_annotation_replication($inboxid, $master_store, $replica_store);
 }
 
 sub test_msg_replication_new_rep
@@ -1161,8 +1167,12 @@ sub test_msg_replication_new_rep
     xlog $self, "After replication, message is still present on the replica";
     $self->check_messages(\%replica_exp, store => $replica_store);
 
+    my $talk = $master_store->get_client();
+    my $status = $talk->status("INBOX", "(mailboxid)");
+    my $inboxid = $status->{mailboxid}[0];
+
     xlog $self, "Check that annotations in the master and replica DB match";
-    $self->check_msg_annotation_replication($master_store, $replica_store);
+    $self->check_msg_annotation_replication($inboxid, $master_store, $replica_store);
 }
 
 sub test_msg_replication_new_bot_mse_gul
@@ -1216,8 +1226,12 @@ sub test_msg_replication_new_bot_mse_gul
     $replica_exp{B}->set_attribute('uid', 3);
     $self->check_messages(\%replica_exp, store => $replica_store);
 
+    my $talk = $master_store->get_client();
+    my $status = $talk->status("INBOX", "(mailboxid)");
+    my $inboxid = $status->{mailboxid}[0];
+
     xlog $self, "Check that annotations in the master and replica DB match";
-    $self->check_msg_annotation_replication($master_store, $replica_store);
+    $self->check_msg_annotation_replication($inboxid, $master_store, $replica_store);
 
     # We should have generated a SYNCERROR or two
     my @lines = $self->{instance}->getsyslog();
@@ -1275,8 +1289,12 @@ sub test_msg_replication_new_bot_mse_guh
     $replica_exp{A}->set_attribute('uid', 3);
     $self->check_messages(\%replica_exp, store => $replica_store);
 
+    my $talk = $master_store->get_client();
+    my $status = $talk->status("INBOX", "(mailboxid)");
+    my $inboxid = $status->{mailboxid}[0];
+
     xlog $self, "Check that annotations in the master and replica DB match";
-    $self->check_msg_annotation_replication($master_store, $replica_store);
+    $self->check_msg_annotation_replication($inboxid, $master_store, $replica_store);
 
     # We should have generated a SYNCERROR or two
     my @lines = $self->{instance}->getsyslog();
@@ -1342,8 +1360,12 @@ sub test_msg_replication_mod_mas
     xlog $self, "After second replication, the message annotation is now present on the replica";
     $self->check_messages(\%replica_exp, store => $replica_store);
 
+    my $talk = $master_store->get_client();
+    my $status = $talk->status("INBOX", "(mailboxid)");
+    my $inboxid = $status->{mailboxid}[0];
+
     xlog $self, "Check that annotations in the master and replica DB match";
-    $self->check_msg_annotation_replication($master_store, $replica_store);
+    $self->check_msg_annotation_replication($inboxid, $master_store, $replica_store);
 }
 
 
@@ -1405,8 +1427,12 @@ sub test_msg_replication_mod_rep
     xlog $self, "After second replication, the message annotation is now present on the replica";
     $self->check_messages(\%replica_exp, store => $replica_store);
 
+    my $talk = $master_store->get_client();
+    my $status = $talk->status("INBOX", "(mailboxid)");
+    my $inboxid = $status->{mailboxid}[0];
+
     xlog $self, "Check that annotations in the master and replica DB match";
-    $self->check_msg_annotation_replication($master_store, $replica_store);
+    $self->check_msg_annotation_replication($inboxid, $master_store, $replica_store);
 }
 
 sub test_msg_replication_mod_bot_msl
@@ -1474,8 +1500,12 @@ sub test_msg_replication_mod_bot_msl
     xlog $self, "After second replication, the message annotation is still present on the replica";
     $self->check_messages(\%replica_exp, store => $replica_store);
 
+    my $talk = $master_store->get_client();
+    my $status = $talk->status("INBOX", "(mailboxid)");
+    my $inboxid = $status->{mailboxid}[0];
+
     xlog $self, "Check that annotations in the master and replica DB match";
-    $self->check_msg_annotation_replication($master_store, $replica_store);
+    $self->check_msg_annotation_replication($inboxid, $master_store, $replica_store);
 }
 
 sub test_msg_replication_mod_bot_msh
@@ -1543,8 +1573,12 @@ sub test_msg_replication_mod_bot_msh
     xlog $self, "After second replication, the message annotation is updated on the replica";
     $self->check_messages(\%replica_exp, store => $replica_store);
 
+    my $talk = $master_store->get_client();
+    my $status = $talk->status("INBOX", "(mailboxid)");
+    my $inboxid = $status->{mailboxid}[0];
+
     xlog $self, "Check that annotations in the master and replica DB match";
-    $self->check_msg_annotation_replication($master_store, $replica_store);
+    $self->check_msg_annotation_replication($inboxid, $master_store, $replica_store);
 }
 
 sub test_msg_replication_exp_mas
@@ -1595,6 +1629,9 @@ sub test_msg_replication_exp_mas
     $talk->store('1', '+flags', '(\\Deleted)');
     $talk->expunge();
 
+    my $status = $talk->status("INBOX", "(mailboxid)");
+    my $inboxid = $status->{mailboxid}[0];
+
     delete $master_exp{A};
     xlog $self, "Before second replication, the message is now missing on the master";
     $self->check_messages(\%master_exp, store => $master_store);
@@ -1612,7 +1649,7 @@ sub test_msg_replication_exp_mas
     $self->check_messages(\%replica_exp, store => $replica_store);
 
     xlog $self, "Check that annotations in the master and replica DB match";
-    $self->check_msg_annotation_replication($master_store, $replica_store);
+    $self->check_msg_annotation_replication($inboxid, $master_store, $replica_store);
 }
 
 sub test_msg_replication_exp_rep
@@ -1679,8 +1716,12 @@ sub test_msg_replication_exp_rep
     xlog $self, "After second replication, the message is still missing on the replica";
     $self->check_messages(\%replica_exp, store => $replica_store);
 
+    my $talk = $master_store->get_client();
+    my $status = $talk->status("INBOX", "(mailboxid)");
+    my $inboxid = $status->{mailboxid}[0];
+
     xlog $self, "Check that annotations in the master and replica DB match";
-    $self->check_msg_annotation_replication($master_store, $replica_store);
+    $self->check_msg_annotation_replication($inboxid, $master_store, $replica_store);
 }
 
 sub test_msg_replication_exp_bot
@@ -1731,6 +1772,9 @@ sub test_msg_replication_exp_bot
     $talk->store('1', '+flags', '(\\Deleted)');
     $talk->expunge();
 
+    my $status = $talk->status("INBOX", "(mailboxid)");
+    my $inboxid = $status->{mailboxid}[0];
+
     xlog $self, "Delete and expunge the message on the replica";
     $talk = $replica_store->get_client();
     $replica_store->_select();
@@ -1754,7 +1798,7 @@ sub test_msg_replication_exp_bot
     $self->check_messages(\%replica_exp, store => $replica_store);
 
     xlog $self, "Check that annotations in the master and replica DB match";
-    $self->check_msg_annotation_replication($master_store, $replica_store);
+    $self->check_msg_annotation_replication($inboxid, $master_store, $replica_store);
 }
 
 sub test_msg_replication_new_mas_partial_wwsw
@@ -1769,6 +1813,10 @@ sub test_msg_replication_new_mas_partial_wwsw
     my $master_store = $self->{master_store};
     my $replica_store = $self->{replica_store};
 
+    my $talk = $master_store->get_client();
+    my $status = $talk->status("INBOX", "(mailboxid)");
+    my $inboxid = $status->{mailboxid}[0];
+
     xlog $self, "Append a message";
     my %master_exp;
     my %replica_exp;
@@ -1777,7 +1825,7 @@ sub test_msg_replication_new_mas_partial_wwsw
 
     xlog $self, "Run replication";
     $self->run_replication();
-    $self->check_msg_annotation_replication($master_store, $replica_store);
+    $self->check_msg_annotation_replication($inboxid, $master_store, $replica_store);
 
     xlog $self, "Write an annotation twice";
     $self->set_msg_annotation($master_store, 1, '/comment', 'value.priv', 'c1');
@@ -1785,14 +1833,14 @@ sub test_msg_replication_new_mas_partial_wwsw
 
     xlog $self, "Run replication";
     $self->run_replication();
-    $self->check_msg_annotation_replication($master_store, $replica_store);
+    $self->check_msg_annotation_replication($inboxid, $master_store, $replica_store);
 
     xlog $self, "Write another annotation";
     $self->set_msg_annotation($master_store, 1, '/altsubject', 'value.priv', 'a1');
 
     xlog $self, "Run replication";
     $self->run_replication();
-    $self->check_msg_annotation_replication($master_store, $replica_store);
+    $self->check_msg_annotation_replication($inboxid, $master_store, $replica_store);
 }
 
 sub test_msg_replication_new_mas_partial_wwd
@@ -1807,6 +1855,10 @@ sub test_msg_replication_new_mas_partial_wwd
     my $master_store = $self->{master_store};
     my $replica_store = $self->{replica_store};
 
+    my $talk = $master_store->get_client();
+    my $status = $talk->status("INBOX", "(mailboxid)");
+    my $inboxid = $status->{mailboxid}[0];
+
     xlog $self, "Append a message";
     my %master_exp;
     my %replica_exp;
@@ -1815,28 +1867,28 @@ sub test_msg_replication_new_mas_partial_wwd
 
     xlog $self, "Run replication";
     $self->run_replication();
-    $self->check_msg_annotation_replication($master_store, $replica_store);
+    $self->check_msg_annotation_replication($inboxid, $master_store, $replica_store);
 
     xlog $self, "Write an annotation";
     $self->set_msg_annotation($master_store, 1, '/comment', 'value.priv', 'c1');
 
     xlog $self, "Run replication";
     $self->run_replication();
-    $self->check_msg_annotation_replication($master_store, $replica_store);
+    $self->check_msg_annotation_replication($inboxid, $master_store, $replica_store);
 
     xlog $self, "Write another annotation";
     $self->set_msg_annotation($master_store, 1, '/altsubject', 'value.priv', 'a1');
 
     xlog $self, "Run replication";
     $self->run_replication();
-    $self->check_msg_annotation_replication($master_store, $replica_store);
+    $self->check_msg_annotation_replication($inboxid, $master_store, $replica_store);
 
     xlog $self, "Delete the first annotation";
     $self->set_msg_annotation($master_store, 1, '/comment', 'value.priv', '');
 
     xlog $self, "Run replication";
     $self->run_replication();
-    $self->check_msg_annotation_replication($master_store, $replica_store);
+    $self->check_msg_annotation_replication($inboxid, $master_store, $replica_store);
 }
 
 sub test_msg_sort_order
@@ -2391,6 +2443,9 @@ sub test_expunge_messages
     my $talk = $self->{store}->get_client();
     $talk->uid(1);
 
+    my $status = $talk->status("INBOX", "(mailboxid)");
+    my $inboxid = $status->{mailboxid}[0];
+
     my @data_by_uid = (
         undef,
         # data thanks to hipsteripsum.me
@@ -2416,7 +2471,7 @@ sub test_expunge_messages
     $self->check_messages(\%exp, keyed_on => 'uid');
 
     xlog $self, "Check the annotations are in the DB too";
-    my $r = $self->list_annotations(scope => 'message');
+    my $r = $self->list_annotations(mailboxid => $inboxid, scope => 'message');
     $self->assert_deep_equals([
         {
             mboxname => 'user.cassandane',
@@ -2455,7 +2510,7 @@ sub test_expunge_messages
     }
 
     xlog $self, "Check the annotations are still in the DB";
-    $r = $self->list_annotations(scope => 'message');
+    $r = $self->list_annotations(mailboxid => $inboxid, scope => 'message');
     $self->assert_deep_equals([
         {
             mboxname => 'user.cassandane',
@@ -2483,7 +2538,7 @@ sub test_expunge_messages
     $self->run_delayed_expunge();
 
     xlog $self, "Check the annotations are gone from the DB";
-    $r = $self->list_annotations(scope => 'message');
+    $r = $self->list_annotations(mailboxid => $inboxid, scope => 'message');
     $self->assert_deep_equals([], $r);
 }
 
@@ -2503,6 +2558,9 @@ sub test_cvt_cyrusdb
     $store->set_fetch_attributes('uid', "annotation ($mentry $mattrib)");
     my $talk = $store->get_client();
     my $admintalk = $self->{adminstore}->get_client();
+
+    my $status = $talk->status($folder, "(mailboxid)");
+    my $folderid = $status->{mailboxid}[0];
 
     xlog $self, "store annotations";
     my $data = $self->make_random_data(2, maxreps => 20, separators => $evilchars);
@@ -2557,8 +2615,10 @@ sub test_cvt_cyrusdb
                                    $global_flat, 'flat');
     $self->assert(( -f $global_flat ));
 
+    my $dir = $self->{instance}->folder_to_directory($folderid);
+
     xlog $self, "Convert the mailbox annotation db to flat";
-    my $mailbox_db = "$basedir/data/user/cassandane/cyrus.annotations";
+    my $mailbox_db = "$dir/cyrus.annotations";
     my $mailbox_flat = "$basedir/xcassann.txt";
 
     $self->assert(( ! -f $mailbox_flat ));

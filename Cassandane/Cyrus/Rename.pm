@@ -603,8 +603,15 @@ sub test_rename_paths
     my ($self) = @_;
     my $basedir = $self->{instance}->{basedir};
     my $imaptalk = $self->{store}->get_client();
+    my $subfolder = 'INBOX.rename-src.sub';
 
-    $imaptalk->create("INBOX.rename-src.sub") || die;
+    $imaptalk->create($subfolder) || die;
+
+    my $status = $imaptalk->status($subfolder, "(mailboxid)");
+    my $uniqueid = $status->{mailboxid}[0];
+    my $first = substr($uniqueid, 0, 1);
+    my $second = substr($uniqueid, 1, 1);
+    my $subdir = "$first/$second/$uniqueid";
 
     $self->{store}->set_folder("INBOX.rename-src.sub");
     $self->{store}->write_begin();
@@ -613,30 +620,22 @@ sub test_rename_paths
     $self->{store}->write_end();
 
     # check source files exist
-    -d "$basedir/data/user/cassandane/rename-src/sub" || die;
-    -d "$basedir/meta/user/cassandane/rename-src/sub" || die;
-    -f "$basedir/meta/user/cassandane/rename-src/sub/cyrus.header" || die;
-    -f "$basedir/meta/user/cassandane/rename-src/sub/cyrus.index" || die;
-    -f "$basedir/data/user/cassandane/rename-src/sub/cyrus.cache" || die;
-    -f "$basedir/data/user/cassandane/rename-src/sub/1." || die;
+    -d "$basedir/data/$subdir" || die;
+    -d "$basedir/meta/$subdir" || die;
+    -f "$basedir/meta/$subdir/cyrus.header" || die;
+    -f "$basedir/meta/$subdir/cyrus.index" || die;
+    -f "$basedir/data/$subdir/cyrus.cache" || die;
+    -f "$basedir/data/$subdir/1." || die;
 
-    # and target don't
-    -d "$basedir/data/user/cassandane/rename-dst" && die;
-    -d "$basedir/meta/user/cassandane/rename-dst" && die;
+    $imaptalk->rename("INBOX.rename-src.sub", "INBOX.rename-dst.sub") || die;
 
-    $imaptalk->rename("INBOX.rename-src.sub", "INBOX.rename-dst.sub");
-
-    # check dest files exist
-    -d "$basedir/data/user/cassandane/rename-dst/sub" || die;
-    -d "$basedir/meta/user/cassandane/rename-dst/sub" || die;
-    -f "$basedir/meta/user/cassandane/rename-dst/sub/cyrus.header" || die;
-    -f "$basedir/meta/user/cassandane/rename-dst/sub/cyrus.index" || die;
-    -f "$basedir/data/user/cassandane/rename-dst/sub/cyrus.cache" || die;
-    -f "$basedir/data/user/cassandane/rename-dst/sub/1." || die;
-
-    # and src don't
-    -d "$basedir/data/user/cassandane/rename-src" && die;
-    -d "$basedir/meta/user/cassandane/rename-src" && die;
+    # check dest files exist (same location)
+    -d "$basedir/data/$subdir" || die;
+    -d "$basedir/meta/$subdir" || die;
+    -f "$basedir/meta/$subdir/cyrus.header" || die;
+    -f "$basedir/meta/$subdir/cyrus.index" || die;
+    -f "$basedir/data/$subdir/cyrus.cache" || die;
+    -f "$basedir/data/$subdir/1." || die;
 }
 
 sub test_rename_deepuser_unixhs

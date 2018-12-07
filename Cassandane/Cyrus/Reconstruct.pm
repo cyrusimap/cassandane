@@ -75,6 +75,9 @@ sub test_reconstruct_zerouid
 
     my $imaptalk = $self->{store}->get_client();
 
+    my $status = $imaptalk->status("INBOX", "(mailboxid)");
+    my $inboxid = $status->{mailboxid}[0];
+
     for (1..10) {
         my $msg = $self->{gen}->generate(subject => "subject $_");
         $self->{store}->write_message($msg, flags => ["\\Seen", "\$NotJunk"]);
@@ -94,8 +97,8 @@ sub test_reconstruct_zerouid
 
     # this needs a bit of magic to know where to write... so
     # we do some hard-coded cyrus.index handling
-    my $basedir = $self->{instance}->{basedir};
-    my $file = "$basedir/data/user/cassandane/cyrus.index";
+    my $mbdir = $self->{instance}->folder_to_directory($inboxid);
+    my $file = "$mbdir/cyrus.index";
     my $fh = IO::File->new($file, "+<");
     die "NO SUCH FILE $file" unless $fh;
     my $index = Cyrus::IndexFile->new($fh);
@@ -124,6 +127,9 @@ sub test_reconstruct_truncated
 
     my $imaptalk = $self->{store}->get_client();
 
+    my $status = $imaptalk->status("INBOX", "(mailboxid)");
+    my $inboxid = $status->{mailboxid}[0];
+
     for (1..10) {
         my $msg = $self->{gen}->generate(subject => "subject $_");
         $self->{store}->write_message($msg, flags => ["\\Seen", "\$NotJunk"]);
@@ -143,8 +149,8 @@ sub test_reconstruct_truncated
 
     # this needs a bit of magic to know where to write... so
     # we do some hard-coded cyrus.index handling
-    my $basedir = $self->{instance}->{basedir};
-    my $file = "$basedir/data/user/cassandane/cyrus.index";
+    my $mbdir = $self->{instance}->folder_to_directory($inboxid);
+    my $file = "$mbdir/cyrus.index";
     my $fh = IO::File->new($file, "+<");
     die "NO SUCH FILE $file" unless $fh;
     my $index = Cyrus::IndexFile->new($fh);
@@ -179,6 +185,9 @@ sub test_reconstruct_removedfile
 
     my $imaptalk = $self->{store}->get_client();
 
+    my $status = $imaptalk->status("INBOX", "(mailboxid)");
+    my $inboxid = $status->{mailboxid}[0];
+
     for (1..10) {
         my $msg = $self->{gen}->generate(subject => "subject $_");
         $self->{store}->write_message($msg, flags => ["\\Seen", "\$NotJunk"]);
@@ -198,8 +207,8 @@ sub test_reconstruct_removedfile
 
     # this needs a bit of magic to know where to write... so
     # we do some hard-coded cyrus.index handling
-    my $basedir = $self->{instance}->{basedir};
-    unlink("$basedir/data/user/cassandane/6.");
+    my $mbdir = $self->{instance}->folder_to_directory($inboxid);
+    unlink("$mbdir/6.");
 
     # this time, the reconstruct will fix up the broken record and re-insert later
     $self->{instance}->run_command({ cyrus => 1 }, 'reconstruct', 'user.cassandane');

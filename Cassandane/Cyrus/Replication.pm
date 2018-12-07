@@ -52,7 +52,7 @@ use Cassandane::Config;
 sub new
 {
     my $class = shift;
-    return $class->SUPER::new({ replica => 1 }, @_);
+    return $class->SUPER::new({ adminstore => 1, replica => 1 }, @_);
 }
 
 sub set_up
@@ -1163,13 +1163,31 @@ sub test_replication_mailbox_new_enough
     my $user = 'cassandane';
     my $exit_code = 0;
 
-    # successfully replicate a mailbox new enough to contain guids
-    my $mailbox10 = $self->{instance}->install_old_mailbox($user, 10);
-    $self->run_replication(mailbox => $mailbox10);
+xlog "get admintalk";
+    my $admintalk = $self->{adminstore}->get_client();
+
+    my $mailbox10 = "user.$user.version10";
+
+xlog "create $mailbox10";
+    $admintalk->create($mailbox10);
+    my $status = $admintalk->status($mailbox10, "(mailboxid)");
+    my $mbid = $status->{mailboxid}[0];
+xlog "get dest_dir";
+    my $dest_dir = $self->{instance}->folder_to_directory($mbid);
 
     # successfully replicate a mailbox new enough to contain guids
-    my $mailbox12 = $self->{instance}->install_old_mailbox($user, 12);
-    $self->run_replication(mailbox => $mailbox12);
+    $self->{instance}->install_old_mailbox($user, 10, $dest_dir);
+    $self->run_replication(mailbox => $mailbox10);
+
+#    my $mailbox12 = "user.$user.version12";
+#    $admintalk->create($mailbox12);
+#    $status = $admintalk->status($mailbox10, "(mailboxid)");
+#    $mbid = $status->{mailboxid}[0];
+#    $dest_dir = $self->{instance}->folder_to_directory($mbid);
+
+    # successfully replicate a mailbox new enough to contain guids
+#    $self->{instance}->install_old_mailbox($user, 12, $dest_dir);
+#    $self->run_replication(mailbox => $mailbox12);
 }
 
 #* create mailbox on master with no messages

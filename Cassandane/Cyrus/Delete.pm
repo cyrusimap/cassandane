@@ -65,36 +65,23 @@ sub tear_down
 
 sub check_folder_ondisk
 {
-    my ($self, $folder, %params) = @_;
+    my ($self, $folder, $id, %params) = @_;
 
     my $instance = delete $params{instance} || $self->{instance};
-    my $deleted = delete $params{deleted} || 0;
     my $exp = delete $params{expected};
     die "Bad params: " . join(' ', keys %params)
         if scalar %params;
 
-    my $display_folder = ($deleted ? "DELETED " : "") . $folder;
-    xlog $self, "Checking that $display_folder exists on disk";
+    xlog $self, "Checking that $folder ($id) exists on disk";
 
-    my $dir;
-    if ($deleted)
-    {
-        my @dirs = $instance->folder_to_deleted_directories($folder);
-        $self->assert_equals(1, scalar(@dirs),
-                             "too many directories for $display_folder");
-        $dir = shift @dirs;
-    }
-    else
-    {
-        $dir = $instance->folder_to_directory($folder);
-    }
+    my $dir = $instance->folder_to_directory($id);
 
     $self->assert_not_null($dir,
-                           "directory missing for $display_folder");
+                           "directory $id missing for $folder");
     $self->assert( -f "$dir/cyrus.header",
-                   "cyrus.header missing for $display_folder");
+                   "cyrus.header missing for $folder");
     $self->assert( -f "$dir/cyrus.index",
-                   "cyrus.index missing for $display_folder");
+                   "cyrus.index missing for $folder");
 
     if (defined $exp)
     {
@@ -102,35 +89,24 @@ sub check_folder_ondisk
         {
             my $uid = $_->uid();
             $self->assert( -f "$dir/$uid.",
-                           "message $uid missing for $display_folder");
+                           "message $uid missing for $folder");
         } values %$exp;
     }
 }
 
 sub check_folder_not_ondisk
 {
-    my ($self, $folder, %params) = @_;
+    my ($self, $folder, $id, %params) = @_;
 
     my $instance = delete $params{instance} || $self->{instance};
-    my $deleted = delete $params{deleted} || 0;
     die "Bad params: " . join(' ', keys %params)
         if scalar %params;
 
-    my $display_folder = ($deleted ? "DELETED " : "") . $folder;
-    xlog $self, "Checking that $display_folder does not exist on disk";
+    xlog $self, "Checking that $folder ($id) does not exist on disk";
 
-    if ($deleted)
-    {
-        my @dirs = $instance->folder_to_deleted_directories($folder);
-        $self->assert_equals(0, scalar(@dirs),
-                             "directory unexpectedly present for $display_folder");
-    }
-    else
-    {
-        my $dir = $instance->folder_to_directory($folder);
-        $self->assert_null($dir,
-                           "directory unexpectedly present for $display_folder");
-    }
+    my $dir = $instance->folder_to_directory($id);
+    $self->assert_null($dir,
+                       "directory $id unexpectedly present for $folder");
 }
 
 sub test_self_inbox_imm
@@ -151,6 +127,11 @@ sub test_self_inbox_imm
         or $self->fail("Cannot create folder $subfolder: $@");
     $self->assert_str_equals('ok', $talk->get_last_completion_response());
 
+    my $status = $talk->status($inbox, "(mailboxid)");
+    my $inboxid = $status->{mailboxid}[0];
+    $status = $talk->status($subfolder, "(mailboxid)");
+    my $subid = $status->{mailboxid}[0];
+
     xlog $self, "Generate a message in $inbox";
     my %exp_inbox;
     $exp_inbox{A} = $self->make_message("Message $inbox A");
@@ -164,10 +145,8 @@ sub test_self_inbox_imm
     $exp_sub{A} = $self->make_message("Message $subfolder A");
     $self->check_messages(\%exp_sub);
 
-    $self->check_folder_ondisk($inbox, expected => \%exp_inbox);
-    $self->check_folder_ondisk($subfolder, expected => \%exp_sub);
-    $self->check_folder_not_ondisk($inbox, deleted => 1);
-    $self->check_folder_not_ondisk($subfolder, deleted => 1);
+    $self->check_folder_ondisk($inbox, $inboxid, expected => \%exp_inbox);
+    $self->check_folder_ondisk($subfolder, $subid, expected => \%exp_sub);
 
     xlog $self, "can delete the subfolder";
     $talk->unselect();
@@ -195,10 +174,8 @@ sub test_self_inbox_imm
     $store->_select();
     $self->check_messages(\%exp_inbox);
 
-    $self->check_folder_ondisk($inbox, expected => \%exp_inbox);
-    $self->check_folder_not_ondisk($subfolder);
-    $self->check_folder_not_ondisk($inbox, deleted => 1);
-    $self->check_folder_not_ondisk($subfolder, deleted => 1);
+    $self->check_folder_ondisk($inbox, $inboxid, expected => \%exp_inbox);
+    $self->check_folder_not_ondisk($subfolder, $subid);
 }
 
 sub test_self_inbox_del
@@ -219,6 +196,11 @@ sub test_self_inbox_del
         or $self->fail("Cannot create folder $subfolder: $@");
     $self->assert_str_equals('ok', $talk->get_last_completion_response());
 
+    my $status = $talk->status($inbox, "(mailboxid)");
+    my $inboxid = $status->{mailboxid}[0];
+    $status = $talk->status($subfolder, "(mailboxid)");
+    my $subid = $status->{mailboxid}[0];
+
     xlog $self, "Generate a message in $inbox";
     my %exp_inbox;
     $exp_inbox{A} = $self->make_message("Message $inbox A");
@@ -232,10 +214,8 @@ sub test_self_inbox_del
     $exp_sub{A} = $self->make_message("Message $subfolder A");
     $self->check_messages(\%exp_sub);
 
-    $self->check_folder_ondisk($inbox, expected => \%exp_inbox);
-    $self->check_folder_ondisk($subfolder, expected => \%exp_sub);
-    $self->check_folder_not_ondisk($inbox, deleted => 1);
-    $self->check_folder_not_ondisk($subfolder, deleted => 1);
+    $self->check_folder_ondisk($inbox, $inboxid, expected => \%exp_inbox);
+    $self->check_folder_ondisk($subfolder, $subid, expected => \%exp_sub);
 
     xlog $self, "can delete the subfolder";
     $talk->unselect();
@@ -263,17 +243,13 @@ sub test_self_inbox_del
     $store->_select();
     $self->check_messages(\%exp_inbox);
 
-    $self->check_folder_ondisk($inbox, expected => \%exp_inbox);
-    $self->check_folder_not_ondisk($subfolder);
-    $self->check_folder_not_ondisk($inbox, deleted => 1);
-    $self->check_folder_ondisk($subfolder, deleted => 1, expected => \%exp_sub);
+    $self->check_folder_ondisk($inbox, $inboxid, expected => \%exp_inbox);
+    $self->check_folder_ondisk($subfolder, $subid, expected => \%exp_sub);
 
     $self->run_delayed_expunge();
 
-    $self->check_folder_ondisk($inbox, expected => \%exp_inbox);
-    $self->check_folder_not_ondisk($subfolder);
-    $self->check_folder_not_ondisk($inbox, deleted => 1);
-    $self->check_folder_not_ondisk($subfolder, deleted => 1);
+    $self->check_folder_ondisk($inbox, $inboxid, expected => \%exp_inbox);
+    $self->check_folder_not_ondisk($subfolder, $subid);
 }
 
 sub test_admin_inbox_imm
@@ -298,6 +274,11 @@ sub test_admin_inbox_imm
         or $self->fail("Cannot create folder $subfolder: $@");
     $self->assert_str_equals('ok', $talk->get_last_completion_response());
 
+    my $status = $talk->status($inbox, "(mailboxid)");
+    my $inboxid = $status->{mailboxid}[0];
+    $status = $talk->status($subfolder, "(mailboxid)");
+    my $subid = $status->{mailboxid}[0];
+
     xlog $self, "Generate a message in $inbox";
     my %exp_inbox;
     $exp_inbox{A} = $self->make_message("Message $inbox A");
@@ -312,10 +293,8 @@ sub test_admin_inbox_imm
     $self->check_messages(\%exp_sub);
     $talk->unselect();
 
-    $self->check_folder_ondisk($inbox, expected => \%exp_inbox);
-    $self->check_folder_ondisk($subfolder, expected => \%exp_sub);
-    $self->check_folder_not_ondisk($inbox, deleted => 1);
-    $self->check_folder_not_ondisk($subfolder, deleted => 1);
+    $self->check_folder_ondisk($inbox, $inboxid, expected => \%exp_inbox);
+    $self->check_folder_ondisk($subfolder, $subid, expected => \%exp_sub);
 
     xlog $self, "admin can delete $inbox";
     $admintalk->delete($inbox);
@@ -344,10 +323,8 @@ sub test_admin_inbox_imm
     $self->assert_str_equals('no', $talk->get_last_completion_response());
     $self->assert_matches(qr/Mailbox does not exist/i, $talk->get_last_error());
 
-    $self->check_folder_not_ondisk($inbox);
-    $self->check_folder_not_ondisk($subfolder);
-    $self->check_folder_not_ondisk($inbox, deleted => 1);
-    $self->check_folder_not_ondisk($subfolder, deleted => 1);
+    $self->check_folder_not_ondisk($inbox, $inboxid);
+    $self->check_folder_not_ondisk($subfolder, $subid);
 }
 
 sub test_admin_inbox_del
@@ -372,6 +349,11 @@ sub test_admin_inbox_del
         or $self->fail("Cannot create folder $subfolder: $@");
     $self->assert_str_equals('ok', $talk->get_last_completion_response());
 
+    my $status = $talk->status($inbox, "(mailboxid)");
+    my $inboxid = $status->{mailboxid}[0];
+    $status = $talk->status($subfolder, "(mailboxid)");
+    my $subid = $status->{mailboxid}[0];
+
     xlog $self, "Generate a message in $inbox";
     my %exp_inbox;
     $exp_inbox{A} = $self->make_message("Message $inbox A");
@@ -386,10 +368,8 @@ sub test_admin_inbox_del
     $self->check_messages(\%exp_sub);
     $talk->unselect();
 
-    $self->check_folder_ondisk($inbox, expected => \%exp_inbox);
-    $self->check_folder_ondisk($subfolder, expected => \%exp_sub);
-    $self->check_folder_not_ondisk($inbox, deleted => 1);
-    $self->check_folder_not_ondisk($subfolder, deleted => 1);
+    $self->check_folder_ondisk($inbox, $inboxid, expected => \%exp_inbox);
+    $self->check_folder_ondisk($subfolder, $subid, expected => \%exp_sub);
 
     xlog $self, "admin can delete $inbox";
     $admintalk->delete($inbox);
@@ -418,17 +398,13 @@ sub test_admin_inbox_del
     $self->assert_str_equals('no', $talk->get_last_completion_response());
     $self->assert_matches(qr/Mailbox does not exist/i, $talk->get_last_error());
 
-    $self->check_folder_not_ondisk($inbox);
-    $self->check_folder_not_ondisk($subfolder);
-    $self->check_folder_ondisk($inbox, deleted => 1, expected => \%exp_inbox);
-    $self->check_folder_ondisk($subfolder, deleted => 1, expected => \%exp_sub);
+    $self->check_folder_ondisk($inbox, $inboxid, expected => \%exp_inbox);
+    $self->check_folder_ondisk($subfolder, $subid, expected => \%exp_sub);
 
     $self->run_delayed_expunge();
 
-    $self->check_folder_not_ondisk($inbox);
-    $self->check_folder_not_ondisk($subfolder);
-    $self->check_folder_not_ondisk($inbox, deleted => 1);
-    $self->check_folder_not_ondisk($subfolder, deleted => 1);
+    $self->check_folder_not_ondisk($inbox, $inboxid);
+    $self->check_folder_not_ondisk($subfolder, $subid);
 }
 
 sub test_bz3781
@@ -449,7 +425,10 @@ sub test_bz3781
         or $self->fail("Cannot create folder $subfolder: $@");
     $self->assert_str_equals('ok', $talk->get_last_completion_response());
 
-    $self->check_folder_ondisk($subfolder);
+    my $status = $talk->status($subfolder, "(mailboxid)");
+    my $subid = $status->{mailboxid}[0];
+
+    $self->check_folder_ondisk($subfolder, $subid);
 
     xlog $self, "Create unexpected files in proc directory";
     my $procdir = $self->{instance}->{basedir} . "/conf/proc";
@@ -465,7 +444,7 @@ sub test_bz3781
     $self->assert_str_equals('no', $talk->get_last_completion_response());
     $self->assert_matches(qr/Mailbox does not exist/i, $talk->get_last_error());
 
-    $self->check_folder_not_ondisk($subfolder);
+    $self->check_folder_not_ondisk($subfolder, $subid);
 
     # We should have generated an IOERROR
     my @lines = $self->{instance}->getsyslog();
@@ -489,6 +468,11 @@ sub test_cyr_expire_delete
         or $self->fail("Cannot create folder $subfolder: $@");
     $self->assert_str_equals('ok', $talk->get_last_completion_response());
 
+    my $status = $talk->status($inbox, "(mailboxid)");
+    my $inboxid = $status->{mailboxid}[0];
+    $status = $talk->status($subfolder, "(mailboxid)");
+    my $subid = $status->{mailboxid}[0];
+
     xlog $self, "Append a messages to $inbox";
     my %msg_inbox;
     $msg_inbox{A} = $self->make_message('Message A in $inbox');
@@ -504,10 +488,8 @@ sub test_cyr_expire_delete
     $msg_sub{C} = $self->make_message('Message C in $subfolder');
     $self->check_messages(\%msg_sub);
 
-    $self->check_folder_ondisk($inbox, expected => \%msg_inbox);
-    $self->check_folder_ondisk($subfolder, expected => \%msg_sub);
-    $self->check_folder_not_ondisk($inbox, deleted => 1);
-    $self->check_folder_not_ondisk($subfolder, deleted => 1);
+    $self->check_folder_ondisk($inbox, $inboxid, expected => \%msg_inbox);
+    $self->check_folder_ondisk($subfolder, $subid, expected => \%msg_sub);
 
     xlog $self, "Delete $subfolder";
     $talk->unselect();
@@ -520,19 +502,16 @@ sub test_cyr_expire_delete
     $self->assert_str_equals('no', $talk->get_last_completion_response());
     $self->assert_matches(qr/Mailbox does not exist/i, $talk->get_last_error());
 
-    $self->check_folder_not_ondisk($subfolder);
-
     xlog $self, "Ensure we still have messages in $inbox";
     $store->set_folder($inbox);
     $store->_select();
     $self->check_messages(\%msg_inbox);
 
-    my $basedir = $self->{instance}->{basedir};
-    $self->assert(-d "$basedir/data/DELETED/user/cassandane/$subfoldername");
+    $self->check_folder_ondisk($subfolder, $subid);
 
     xlog $self, "Run cyr_expire -D now.";
     $self->{instance}->run_command({ cyrus => 1 }, 'cyr_expire', '-D' => '0' );
-    $self->assert(!-d "$basedir/data/DELETED/user/cassandane/$subfoldername");
+    $self->check_folder_not_ondisk($subfolder, $subid);
 }
 
 sub test_allowdeleted
@@ -594,6 +573,11 @@ sub test_cyr_expire_delete_with_annotation
         or $self->fail("Cannot create folder $subfolder: $@");
     $self->assert_str_equals('ok', $talk->get_last_completion_response());
 
+    my $status = $talk->status($inbox, "(mailboxid)");
+    my $inboxid = $status->{mailboxid}[0];
+    $status = $talk->status($subfolder, "(mailboxid)");
+    my $subid = $status->{mailboxid}[0];
+
     xlog $self, "Append a messages to $inbox";
     my %msg_inbox;
     $msg_inbox{A} = $self->make_message('Message A in $inbox');
@@ -612,10 +596,10 @@ sub test_cyr_expire_delete_with_annotation
     $msg_sub{C} = $self->make_message('Message C in $subfolder');
     $self->check_messages(\%msg_sub);
 
-    $self->check_folder_ondisk($inbox, expected => \%msg_inbox);
-    $self->check_folder_ondisk($subfolder, expected => \%msg_sub);
-    $self->check_folder_not_ondisk($inbox, deleted => 1);
-    $self->check_folder_not_ondisk($subfolder, deleted => 1);
+    $self->check_folder_ondisk($inbox, $inboxid, expected => \%msg_inbox);
+    $self->check_folder_ondisk($subfolder, $subid, expected => \%msg_sub);
+#    $self->check_folder_not_ondisk($inbox, deleted => 1);
+#    $self->check_folder_not_ondisk($subfolder, deleted => 1);
 
     xlog $self, "Delete $subfolder";
     $talk->unselect();
@@ -628,23 +612,26 @@ sub test_cyr_expire_delete_with_annotation
     $self->assert_str_equals('no', $talk->get_last_completion_response());
     $self->assert_matches(qr/Mailbox does not exist/i, $talk->get_last_error());
 
-    $self->check_folder_not_ondisk($subfolder);
+#    $self->check_folder_not_ondisk($subfolder);
 
     xlog $self, "Ensure we still have messages in $inbox";
     $store->set_folder($inbox);
     $store->_select();
     $self->check_messages(\%msg_inbox);
 
-    my $basedir = $self->{instance}->{basedir};
-    $self->assert(-d "$basedir/data/DELETED/user/cassandane/$subfoldername");
+#    my $basedir = $self->{instance}->{basedir};
+#    $self->assert(-d "$basedir/data/DELETED/user/cassandane/$subfoldername");
+    $self->check_folder_ondisk($subfolder, $subid);
 
     xlog $self, "Run cyr_expire -D now, it shouldn't delete.";
     $self->{instance}->run_command({ cyrus => 1 }, 'cyr_expire', '-D' => '0' );
-    $self->assert(-d "$basedir/data/DELETED/user/cassandane/$subfoldername");
+#    $self->assert(-d "$basedir/data/DELETED/user/cassandane/$subfoldername");
+    $self->check_folder_ondisk($subfolder, $subid);
 
     xlog $self, "Run cyr_expire -D now, with -a, skipping annotation.";
     $self->{instance}->run_command({ cyrus => 1 }, 'cyr_expire', '-D' => '0', '-a' );
-    $self->assert(!-d "$basedir/data/DELETED/user/cassandane/$subfoldername");
+#    $self->assert(!-d "$basedir/data/DELETED/user/cassandane/$subfoldername");
+    $self->check_folder_not_ondisk($subfolder, $subid);
 }
 
 # https://github.com/cyrusimap/cyrus-imapd/issues/2413
@@ -667,6 +654,11 @@ sub test_cyr_expire_dont_resurrect_convdb
         or $self->fail("Cannot create folder $subfolder: $@");
     $self->assert_str_equals('ok', $talk->get_last_completion_response());
 
+    my $status = $talk->status($inbox, "(mailboxid)");
+    my $inboxid = $status->{mailboxid}[0];
+    $status = $talk->status($subfolder, "(mailboxid)");
+    my $subid = $status->{mailboxid}[0];
+
     xlog $self, "Append a messages to $inbox";
     my %msg_inbox;
     $msg_inbox{A} = $self->make_message('Message A in $inbox');
@@ -682,10 +674,8 @@ sub test_cyr_expire_dont_resurrect_convdb
     $msg_sub{C} = $self->make_message('Message C in $subfolder');
     $self->check_messages(\%msg_sub);
 
-    $self->check_folder_ondisk($inbox, expected => \%msg_inbox);
-    $self->check_folder_ondisk($subfolder, expected => \%msg_sub);
-    $self->check_folder_not_ondisk($inbox, deleted => 1);
-    $self->check_folder_not_ondisk($subfolder, deleted => 1);
+    $self->check_folder_ondisk($inbox, $inboxid, expected => \%msg_inbox);
+    $self->check_folder_ondisk($subfolder, $subid, expected => \%msg_sub);
 
     # expect user has a conversations database
     $self->assert(-f "$basedir/conf/user/c/cassandane.conversations");
@@ -700,19 +690,18 @@ sub test_cyr_expire_dont_resurrect_convdb
 
     # expect user does not have a conversations database
     $self->assert(!-f "$basedir/conf/user/c/cassandane.conversations");
-    $self->check_folder_not_ondisk($inbox);
-    $self->check_folder_ondisk($inbox, deleted => 1);
+    $self->check_folder_ondisk($inbox, $inboxid);
 
     xlog $self, "Run cyr_expire -E now.";
     $self->{instance}->run_command({ cyrus => 1 }, 'cyr_expire', '-E' => '1' );
-    $self->check_folder_ondisk($inbox, deleted => 1);
+    $self->check_folder_ondisk($inbox, $inboxid);
 
     # expect user does not have a conversations database
     $self->assert(!-f "$basedir/conf/user/c/cassandane.conversations");
 
     xlog $self, "Run cyr_expire -D now.";
     $self->{instance}->run_command({ cyrus => 1 }, 'cyr_expire', '-D' => '0' );
-    $self->check_folder_not_ondisk($inbox, deleted => 1);
+    $self->check_folder_not_ondisk($inbox, $inboxid);
 
     # expect user does not have a conversations database
     $self->assert(!-f "$basedir/conf/user/c/cassandane.conversations");

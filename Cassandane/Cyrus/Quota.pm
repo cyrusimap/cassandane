@@ -2409,6 +2409,9 @@ sub test_reconstruct
     my $talk = $store->get_client();
     my $admintalk = $self->{adminstore}->get_client();
 
+    my $status = $talk->status($folder, "(mailboxid)");
+    my $folderid = $status->{mailboxid}[0];
+
     xlog $self, "set ourselves a basic limit";
     $self->_set_limits(
         storage => 100000,
@@ -2476,7 +2479,7 @@ sub test_reconstruct
     $admintalk = undef;
 
     xlog $self, "Moving the cyrus.index file out of the way";
-    my $mbdir = $self->{instance}->{basedir} . '/data/user/cassandane';
+    my $mbdir = $self->{instance}->folder_to_directory($folderid);
     my $cyrus_index = "$mbdir/cyrus.index";
     $self->assert(( -f $cyrus_index ));
     rename($cyrus_index, $cyrus_index . '.NOT')
@@ -2534,6 +2537,9 @@ sub test_reconstruct_orphans
     my $talk = $store->get_client();
     my $admintalk = $self->{adminstore}->get_client();
 
+    my $status = $talk->status($folder, "(mailboxid)");
+    my $folderid = $status->{mailboxid}[0];
+
     xlog $self, "set ourselves a basic limit";
     $self->_set_limits(
         storage => 100000,
@@ -2601,7 +2607,7 @@ sub test_reconstruct_orphans
     $admintalk = undef;
 
     xlog $self, "Moving the cyrus.index file out of the way";
-    my $mbdir = $self->{instance}->{basedir} . '/data/user/cassandane';
+    my $mbdir = $self->{instance}->folder_to_directory($folderid);
     my $cyrus_index = "$mbdir/cyrus.index";
     $self->assert(( -f $cyrus_index ));
     rename($cyrus_index, $cyrus_index . '.NOT')
