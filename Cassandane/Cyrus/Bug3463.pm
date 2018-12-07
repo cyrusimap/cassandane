@@ -62,7 +62,11 @@ sub set_up
     my $imaptalk = $self->{store}->get_client();
     $imaptalk->create("INBOX.problem-eposter") || die;
 
-    system("tar -C $self->{instance}{basedir}/data/user/cassandane/ -z -x -f data/problem-mails-bug3463.tar.gz");
+    my $status = $imaptalk->status("INBOX.problem-eposter", "(mailboxid)");
+    my $mbid = $status->{mailboxid}[0];
+    my $mbdir = $self->{instance}->folder_to_directory($mbid);
+
+    system("tar -C $mbdir -z -x -f data/problem-mails-bug3463.tar.gz");
 }
 
 sub tear_down

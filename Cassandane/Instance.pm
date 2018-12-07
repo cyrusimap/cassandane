@@ -1925,6 +1925,7 @@ sub unpackfile
         $dst = $self->{basedir} . '/' . $dst;
     }
     # else: absolute path given
+xlog "Path: $dst";
 
     my $options = {};
     my @cmd = ();
@@ -1950,44 +1951,33 @@ sub unpackfile
         die "Unhandled packed file $src";
     }
 
+use Data::Dumper;
+xlog "Running: " . Dumper(@cmd);
     return $self->run_command($options, @cmd);
 }
 
 sub folder_to_directory
 {
-    my ($self, $folder) = @_;
+    my ($self, $uniqueid) = @_;
 
-    $folder =~ s/^inbox\./user.cassandane./i;
-    $folder =~ s/^inbox$/user.cassandane/i;
-    $folder =~ s/\./\//g;
+    my $first = substr($uniqueid, 0, 1);
+    my $second = substr($uniqueid, 1, 1);
 
-    my $dir = $self->{basedir} . "/data/$folder";
+    my $dir = $self->{basedir} . "/data/$first/$second/$uniqueid";
     return undef unless -d $dir;
     return $dir;
 }
 
-sub folder_to_deleted_directories
+sub folder_to_archive_directory
 {
-    my ($self, $folder) = @_;
+    my ($self, $uniqueid) = @_;
 
-    $folder =~ s/^inbox\./user.cassandane./i;
-    $folder =~ s/^inbox$/user.cassandane/i;
-    $folder =~ s/\./\//g;
+    my $first = substr($uniqueid, 0, 1);
+    my $second = substr($uniqueid, 1, 1);
 
-    my @dirs;
-    my $deldir = $self->{basedir} . "/data/DELETED/$folder";
-    if ( -d $deldir )
-    {
-        opendir DELDIR, $deldir
-            or die "Cannot open directory $deldir: $!";
-        while (my $e = readdir DELDIR)
-        {
-            push(@dirs, "$deldir/$e")
-                if ($e =~ m/^[0-9A-F]{8}$/);
-        }
-        closedir DELDIR;
-    }
-    return @dirs;
+    my $dir = $self->{basedir} . "/archive/$first/$second/$uniqueid";
+    return undef unless -d $dir;
+    return $dir;
 }
 
 sub notifyd
@@ -2239,17 +2229,15 @@ sub install_sieve_script
 
 sub install_old_mailbox
 {
-    my ($self, $user, $version) = @_;
+    my ($self, $user, $version, $dest_dir) = @_;
 
     my $data_file = abs_path("data/old-mailboxes/version$version.tar.gz");
     die "Old mailbox data does not exist: $data_file" if not -f $data_file;
 
     xlog "installing version $version mailbox for user $user";
 
-    my $dest_dir = "data/user/$user";
-
     $self->unpackfile($data_file, $dest_dir);
-    $self->run_command({ cyrus => 1 }, 'reconstruct', '-f', "user.$user");
+#    $self->run_command({ cyrus => 1 }, 'reconstruct', '-f', "user.$user");
 
     xlog "installed version $version mailbox for user $user: user.$user.version$version";
 
