@@ -158,6 +158,7 @@ sub _zap_quota
     $self->assert_str_equals('quotalegacy', $backend)
         if defined $backend;        # the default value is also ok
 
+#<<<<<<< HEAD
     my ($uc) = ($quotaroot =~ m/^user[\.\/](.)/);
     my ($domain, $dirname);
     ($quotaroot, $domain) = split '@', $quotaroot;
@@ -171,6 +172,7 @@ sub _zap_quota
     $dirname .= "/quota/$uc";
     my $qfn = $quotaroot;
     $qfn =~ s/\//\./g;
+    $qfn =~ s/\./\x1F/g;
     my $filename = "$dirname/$qfn";
     mkpath $dirname;
 
