@@ -1057,6 +1057,12 @@ sub test_audit_unindexed
     xlog $self, "Create message UID 2 but *don't* index it.";
     $self->make_message() || die;
 
+    my $status = $talk->status("user.cassandane", "(mailboxid)");
+    my $inboxid = $status->{mailboxid}[0];
+    my $first = substr($inboxid, 0, 1);
+    my $second = substr($inboxid, 1, 1);
+    my $xapiandir = "$basedir/search/user/$first/$second/$inboxid/xapian";
+
     xlog $self, "Read current cyrus.indexed.db.";
     my $result = $self->{instance}->run_command(
         {
@@ -1064,7 +1070,7 @@ sub test_audit_unindexed
             redirects => { stdout => $outfile },
         },
         'cyr_dbtool',
-        "$basedir/search/c/user/cassandane/xapian/cyrus.indexed.db",
+        "$xapiandir/cyrus.indexed.db",
         'twoskip',
         'show'
     );
@@ -1084,7 +1090,7 @@ sub test_audit_unindexed
             },
         },
         'cyr_dbtool',
-        "$basedir/search/c/user/cassandane/xapian/cyrus.indexed.db",
+        "$xapiandir/cyrus.indexed.db",
         'twoskip',
         'set',
         $key,

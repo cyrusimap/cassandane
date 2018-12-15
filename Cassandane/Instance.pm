@@ -2156,19 +2156,31 @@ sub get_sieve_script_dir
 
     my ($user, $domain) = split '@', $cyrusname;
 
-    if ($domain) {
-        my $dhash = substr($domain, 0, 1);
-        $sieved .= "/domain/$dhash/$domain";
-    }
-
     if ($user ne '')
     {
-        my $uhash = substr($user, 0, 1);
-        $sieved .= "/$uhash/$user/";
+        my $srv = $self->get_service('imap');
+        my $adminstore = $srv->create_store(username => 'admin');
+        my $adminclient = $adminstore->get_client();
+        my $inbox = "user.$user";
+        if (index($user, '.') > -1) {
+            $inbox = "user/$user";
+        }
+        $adminclient->setacl($inbox, 'admin' => 'lrswipkxtecd');
+        my $res = $adminclient->status($inbox, ['mailboxid']);
+        my $id = $res->{mailboxid}[0];
+        my $first = substr($id, 0, 1);
+        my $second = substr($id, 1, 1);
+
+        $sieved .= "/$first/$second/$id";
     }
     else
     {
         # shared folder
+        if ($domain) {
+            my $dhash = substr($domain, 0, 1);
+            $sieved .= "/domain/$dhash/$domain";
+        }
+
         $sieved .= '/global/';
     }
 
