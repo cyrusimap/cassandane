@@ -2804,21 +2804,21 @@ sub test_expunge_messages
             mboxname => 'user.cassandane',
             uid => 1,
             entry => $entry,
-            userid => 'cassandane',
+            userid => '[.OwNeR.]',
             data => $data_by_uid[1]
         },
         {
             mboxname => 'user.cassandane',
             uid => 2,
             entry => $entry,
-            userid => 'cassandane',
+            userid => '[.OwNeR.]',
             data => $data_by_uid[2]
         },
         {
             mboxname => 'user.cassandane',
             uid => 3,
             entry => $entry,
-            userid => 'cassandane',
+            userid => '[.OwNeR.]',
             data => $data_by_uid[3]
         }
     ], $r);
@@ -2843,21 +2843,21 @@ sub test_expunge_messages
             mboxname => 'user.cassandane',
             uid => 1,
             entry => $entry,
-            userid => 'cassandane',
+            userid => '[.OwNeR.]',
             data => $data_by_uid[1]
         },
         {
             mboxname => 'user.cassandane',
             uid => 2,
             entry => $entry,
-            userid => 'cassandane',
+            userid => '[.OwNeR.]',
             data => $data_by_uid[2]
         },
         {
             mboxname => 'user.cassandane',
             uid => 3,
             entry => $entry,
-            userid => 'cassandane',
+            userid => '[.OwNeR.]',
             data => $data_by_uid[3]
         }
     ], $r);
