@@ -1925,7 +1925,6 @@ sub unpackfile
         $dst = $self->{basedir} . '/' . $dst;
     }
     # else: absolute path given
-xlog "Path: $dst";
 
     my $options = {};
     my @cmd = ();
@@ -1951,8 +1950,6 @@ xlog "Path: $dst";
         die "Unhandled packed file $src";
     }
 
-use Data::Dumper;
-xlog "Running: " . Dumper(@cmd);
     return $self->run_command($options, @cmd);
 }
 
@@ -2237,7 +2234,7 @@ sub install_old_mailbox
     xlog "installing version $version mailbox for user $user";
 
     $self->unpackfile($data_file, $dest_dir);
-#    $self->run_command({ cyrus => 1 }, 'reconstruct', '-f', "user.$user");
+    $self->run_command({ cyrus => 1 }, 'reconstruct', '-f', "user.$user");
 
     xlog "installed version $version mailbox for user $user: user.$user.version$version";
 
