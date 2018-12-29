@@ -1944,7 +1944,7 @@ sub folder_to_archive_directory
     my $second = substr($uniqueid, 1, 1);
 
     my $dir = $self->{basedir} . "/archive/$first/$second/$uniqueid";
-    return undef unless -d $dir;
+#    return undef unless -d $dir;
     return $dir;
 }
 
