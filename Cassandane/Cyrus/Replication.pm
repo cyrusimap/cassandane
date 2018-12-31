@@ -1163,31 +1163,29 @@ sub test_replication_mailbox_new_enough
     my $user = 'cassandane';
     my $exit_code = 0;
 
-xlog "get admintalk";
     my $admintalk = $self->{adminstore}->get_client();
 
     my $mailbox10 = "user.$user.version10";
+    my $mailbox12 = "user.$user.version12";
 
-xlog "create $mailbox10";
     $admintalk->create($mailbox10);
+    $admintalk->create($mailbox12);
+
     my $status = $admintalk->status($mailbox10, "(mailboxid)");
-    my $mbid = $status->{mailboxid}[0];
-xlog "get dest_dir";
-    my $dest_dir = $self->{instance}->folder_to_directory($mbid);
+    my $id10 = $status->{mailboxid}[0];
+
+    $status = $admintalk->status($mailbox12, "(mailboxid)");
+    my $id12 = $status->{mailboxid}[0];
 
     # successfully replicate a mailbox new enough to contain guids
+    my $dest_dir = $self->{instance}->folder_to_directory($id10);
     $self->{instance}->install_old_mailbox($user, 10, $dest_dir);
     $self->run_replication(mailbox => $mailbox10);
 
-#    my $mailbox12 = "user.$user.version12";
-#    $admintalk->create($mailbox12);
-#    $status = $admintalk->status($mailbox10, "(mailboxid)");
-#    $mbid = $status->{mailboxid}[0];
-#    $dest_dir = $self->{instance}->folder_to_directory($mbid);
-
     # successfully replicate a mailbox new enough to contain guids
-#    $self->{instance}->install_old_mailbox($user, 12, $dest_dir);
-#    $self->run_replication(mailbox => $mailbox12);
+    $dest_dir = $self->{instance}->folder_to_directory($id12);
+    $self->{instance}->install_old_mailbox($user, 12, $dest_dir);
+    $self->run_replication(mailbox => $mailbox12);
 }
 
 #* create mailbox on master with no messages
