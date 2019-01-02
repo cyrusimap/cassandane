@@ -1086,6 +1086,23 @@ sub test_replication_mailbox_too_old
     my $master_instance = $self->{instance};
     my $replica_instance = $self->{replica};
 
+    my $inbox = "user.$user";
+    my $mastertalk = $self->{master_store}->get_client();
+    my $status = $mastertalk->status($inbox, "(mailboxid)");
+    my $inboxid = $status->{mailboxid}[0];
+    my $master_dir = $master_instance->folder_to_directory($inboxid);
+    my $replica_dir = $replica_instance->folder_to_directory($inboxid);
+
+    # replicate now to create mailbox entry and directory on replica
+    $exit_code = 0;
+    $self->run_replication(
+        user => $user,
+        handlers => {
+            exited_abnormally => sub { (undef, $exit_code) = @_; },
+        },
+    );
+    $self->assert_equals(0, $exit_code);
+
     # logs will all be in the master instance, because that's where
     # sync_client runs from.
     my $log_base = "$master_instance->{basedir}/$self->{_name}";
@@ -1093,7 +1110,7 @@ sub test_replication_mailbox_too_old
     # add a version9 mailbox to the replica only, and try to replicate.
     # replication will fail, because the initial GET USER will barf
     # upon encountering the old mailbox.
-    $replica_instance->install_old_mailbox($user, 9);
+    $replica_instance->install_old_mailbox($user, 9, $replica_dir);
     my $log_firstreject = "$log_base-firstreject.stderr";
     $exit_code = 0;
     $self->run_replication(
@@ -1110,7 +1127,7 @@ sub test_replication_mailbox_too_old
     # add the version9 mailbox to the master, and try to replicate.
     # mailbox will be found and rejected locally, and replication will
     # fail.
-    $master_instance->install_old_mailbox($user, 9);
+    $master_instance->install_old_mailbox($user, 9, $master_dir);
     my $log_localreject = "$log_base-localreject.stderr";
     $exit_code = 0;
     $self->run_replication(
@@ -1128,6 +1145,7 @@ sub test_replication_mailbox_too_old
     # replication will fail, because the initial GET USER will barf
     # upon encountering the old mailbox.
     $master_instance->run_command({ cyrus => 1 }, qw(reconstruct -V max -u), $user);
+
     my $log_remotereject = "$log_base-remotereject.stderr";
     $exit_code = 0;
     $self->run_replication(
