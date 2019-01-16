@@ -598,8 +598,6 @@ sub test_cyr_expire_delete_with_annotation
 
     $self->check_folder_ondisk($inbox, $inboxid, expected => \%msg_inbox);
     $self->check_folder_ondisk($subfolder, $subid, expected => \%msg_sub);
-#    $self->check_folder_not_ondisk($inbox, deleted => 1);
-#    $self->check_folder_not_ondisk($subfolder, deleted => 1);
 
     xlog $self, "Delete $subfolder";
     $talk->unselect();
@@ -619,18 +617,14 @@ sub test_cyr_expire_delete_with_annotation
     $store->_select();
     $self->check_messages(\%msg_inbox);
 
-#    my $basedir = $self->{instance}->{basedir};
-#    $self->assert(-d "$basedir/data/DELETED/user/cassandane/$subfoldername");
     $self->check_folder_ondisk($subfolder, $subid);
 
     xlog $self, "Run cyr_expire -D now, it shouldn't delete.";
     $self->{instance}->run_command({ cyrus => 1 }, 'cyr_expire', '-D' => '0' );
-#    $self->assert(-d "$basedir/data/DELETED/user/cassandane/$subfoldername");
     $self->check_folder_ondisk($subfolder, $subid);
 
     xlog $self, "Run cyr_expire -D now, with -a, skipping annotation.";
     $self->{instance}->run_command({ cyrus => 1 }, 'cyr_expire', '-D' => '0', '-a' );
-#    $self->assert(!-d "$basedir/data/DELETED/user/cassandane/$subfoldername");
     $self->check_folder_not_ondisk($subfolder, $subid);
 }
 
@@ -641,7 +635,7 @@ sub user_to_metafile
     my $first = substr($uniqueid, 0, 1);
     my $second = substr($uniqueid, 1, 1);
 
-    my $file = $self->{instance}->{basedir} . "/conf/user/$first/$second/$uniqueid.$suffix";
+    my $file = $self->{instance}->{basedir} . "/conf/user/$first/$second/$uniqueid/$suffix.db";
     return $file;
 }
 
