@@ -1053,6 +1053,7 @@ sub test_audit_unindexed
         'show'
     );
     my @entries = _readfile();
+    @entries = grep /^\*M\*/, @entries;
     $self->assert_num_equals(1, scalar @entries);
 
     xlog $self, "Add UID 2 to sequence set in cyrus.indexed.db";
