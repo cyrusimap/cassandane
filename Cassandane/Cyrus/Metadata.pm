@@ -1716,7 +1716,7 @@ sub test_msg_replication_exp_rep
     xlog $self, "After second replication, the message is still missing on the replica";
     $self->check_messages(\%replica_exp, store => $replica_store);
 
-    my $talk = $master_store->get_client();
+    $talk = $master_store->get_client();
     my $status = $talk->status("INBOX", "(mailboxid)");
     my $inboxid = $status->{mailboxid}[0];
 
