@@ -390,7 +390,7 @@ sub _munge_annot_crc
     # this needs a bit of magic to know where to write... so
     # we do some hard-coded cyrus.index handling
     my $basedir = $instance->{basedir};
-    my $file = "$basedir/$path";
+    my $file = "$path/cyrus.index";
     my $fh = IO::File->new($file, "+<");
     die "NO SUCH FILE $file" unless $fh;
     my $index = Cyrus::IndexFile->new($fh);
@@ -413,7 +413,13 @@ sub test_replication_reply_200
     $master_store->set_fetch_attributes('uid', 'cid', 'basecid');
     $replica_store->set_fetch_attributes('uid', 'cid', 'basecid');
 
-    $self->assert($master_store->get_client()->capability()->{xconversations});
+    my $imaptalk = $master_store->get_client();
+    $self->assert($imaptalk->capability()->{xconversations});
+
+    # get id of mailbox
+    my $status = $imaptalk->status("user.cassandane", "(mailboxid)");
+    my $mbid = $status->{mailboxid}[0];
+    my $mbdir = $self->{instance}->folder_to_directory($mbid);
 
     xlog $self, "generating message A";
     $exp{A} = $self->make_message("Message A", store => $master_store);
@@ -452,8 +458,12 @@ sub test_replication_reply_200
 
     # corrupt the sync_annot_crc at both ends and check that we can fix it without syncback
     xlog $self, "Damaging annotations CRCs";
-    _munge_annot_crc($self->{instance}, "/data/user/cassandane/cyrus.index", 1);
-    _munge_annot_crc($self->{replica}, "/data/user/cassandane/cyrus.index", 2);
+    _munge_annot_crc($self->{instance}, $mbdir, 1);
+
+    my $basedir = $self->{instance}->{basedir};
+    my $repdir = $self->{replica}->{basedir};
+    $mbdir =~ s/$basedir/$repdir/;
+    _munge_annot_crc($self->{replica}, $mbdir, 2);
 
     $self->run_replication(nosyncback => 1);
     $self->check_replication('cassandane');
