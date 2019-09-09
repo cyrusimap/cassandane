@@ -2105,17 +2105,23 @@ sub get_conf_user_file
 {
     my ($self, $cyrusname, $ext) = @_;
 
-    my ($user, $domain) = split '@', $cyrusname;
-
-    my $base = "$self->{basedir}/conf";
-    if ($domain) {
-        my $dhash = substr($domain, 0, 1);
-        $base .= "/domain/$dhash/$domain";
+    my $user = $cyrusname;
+    my $srv = $self->get_service('imap');
+    my $adminstore = $srv->create_store(username => 'admin');
+    my $adminclient = $adminstore->get_client();
+    my $inbox = "user.$user";
+    if (index($user, '.') > -1) {
+        $inbox = "user/$user";
     }
+    $adminclient->setacl($inbox, 'admin' => 'lrswipkxtecd');
+    my $res = $adminclient->status($inbox, ['mailboxid']);
+    my $id = $res->{mailboxid}[0];
+    my $first = substr($id, 0, 1);
+    my $second = substr($id, 1, 1);
 
-    my $uhash = substr($user, 0, 1);
+    my $confdir = "$self->{basedir}/conf/user/$first/$second/$id/$ext.db";
 
-    return "$base/user/$uhash/$user.$ext";
+    return $confdir;
 }
 
 sub install_sieve_script
