@@ -2075,9 +2075,9 @@ sub get_sieve_script_dir
         my $srv = $self->get_service('imap');
         my $adminstore = $srv->create_store(username => 'admin');
         my $adminclient = $adminstore->get_client();
-        my $inbox = "user.$user";
-        if (index($user, '.') > -1) {
-            $inbox = "user/$user";
+        my $inbox = "user.$cyrusname";
+        if (index($cyrusname, '.') > -1) {
+            $inbox = "user/$cyrusname";
         }
         $adminclient->setacl($inbox, 'admin' => 'lrswipkxtecd');
         my $res = $adminclient->status($inbox, ['mailboxid']);
@@ -2103,9 +2103,8 @@ sub get_sieve_script_dir
 
 sub get_conf_user_file
 {
-    my ($self, $cyrusname, $ext) = @_;
+    my ($self, $user, $ext) = @_;
 
-    my $user = $cyrusname;
     my $srv = $self->get_service('imap');
     my $adminstore = $srv->create_store(username => 'admin');
     my $adminclient = $adminstore->get_client();
