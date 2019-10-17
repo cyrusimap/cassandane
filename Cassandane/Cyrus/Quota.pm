@@ -158,7 +158,6 @@ sub _zap_quota
     $self->assert_str_equals('quotalegacy', $backend)
         if defined $backend;        # the default value is also ok
 
-#<<<<<<< HEAD
     my ($uc) = ($quotaroot =~ m/^user[\.\/](.)/);
     my ($domain, $dirname);
     ($quotaroot, $domain) = split '@', $quotaroot;
