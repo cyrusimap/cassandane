@@ -193,7 +193,7 @@ sub test_splitbrain_mailbox
     my @replicasyslog = $self->{replica}->getsyslog();
 
     $self->assert(grep { m/MAILBOX received NO response: IMAP_MAILBOX_MOVED/ } @mastersyslog);
-    $self->assert(grep { m/SYNCNOTICE: failed to create mailbox user.cassandane.dest-name/ } @replicasyslog);
+    $self->assert(grep { m/SYNCNOTICE: failed to create mailbox user\x1Fcassandane\x1Fdest-name/ } @replicasyslog);
 
     xlog $self, "Run a full user replication to repair";
     $self->run_replication();
@@ -204,7 +204,7 @@ sub test_splitbrain_mailbox
     $mastertalk->rename("INBOX.dest-name", "INBOX.foo");
     my $file = $self->{instance}->{basedir} . "/sync.log";
     open(FH, ">", $file);
-    print FH "MAILBOX user.cassandane.foo\n";
+    print FH "MAILBOX user\x1Fcassandane\x1Ffoo\n";
     close(FH);
 
     $self->{instance}->getsyslog();
@@ -214,10 +214,10 @@ sub test_splitbrain_mailbox
     @mastersyslog = $self->{instance}->getsyslog();
     @replicasyslog = $self->{replica}->getsyslog();
     # initial failures
-    $self->assert(grep { m/do_folders\(\): update failed: user.cassandane.foo/ } @mastersyslog);
-    $self->assert(grep { m/SYNCNOTICE: failed to create mailbox user.cassandane.foo/ } @replicasyslog);
+    $self->assert(grep { m/do_folders\(\): update failed: user\x1Fcassandane\x1Ffoo/ } @mastersyslog);
+    $self->assert(grep { m/SYNCNOTICE: failed to create mailbox user\x1Fcassandane\x1Ffoo/ } @replicasyslog);
     # later success
-    $self->assert(grep { m/Rename: user.cassandane.dest-name -> user.cassandane.foo/ } @replicasyslog);
+    $self->assert(grep { m/Rename: user\x1Fcassandane\x1Fdest-name -> user\x1Fcassandane\x1Ffoo/ } @replicasyslog);
     # replication fixes itself
     $self->check_replication('cassandane');
 }

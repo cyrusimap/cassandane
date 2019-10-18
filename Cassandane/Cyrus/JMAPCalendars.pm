@@ -601,8 +601,8 @@ sub test_calendar_set_sharewith
     ]);
 
     my @lines = $self->{instance}->getsyslog();
-    $self->assert_matches(qr/manifold\.\#notifications/, "@lines");
-    $self->assert((not grep { /paraphrase\.\#notifications/ } @lines), Data::Dumper::Dumper(\@lines));
+    $self->assert_matches(qr/manifold\x1F\#notifications/, "@lines");
+    $self->assert((not grep { /paraphrase\x1F\#notifications/ } @lines), Data::Dumper::Dumper(\@lines));
 
     xlog $self, "Remove the access for manifold";
     $res = $jmap->CallMethods([
