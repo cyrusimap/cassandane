@@ -8961,10 +8961,14 @@ EOF
     my $msg = $res->[0][1]->{created}{"1"};
     $self->assert_not_null($msg);
 
-    my $basedir = $self->{instance}->{basedir};
+    my $imaptalk = $self->{store}->get_client();
+    my $status = $imaptalk->status("INBOX.#jmap", "(mailboxid)");
+    my $jmapid = $status->{mailboxid}[0];
+    my $mbdir = $self->{instance}->folder_to_directory($jmapid);
+    my @jstat = stat("$mbdir/1.");
 
-    my @jstat = stat("$basedir/data/user/cassandane/\#jmap/1.");
-    my @dstat = stat("$basedir/data/user/cassandane/drafts/1.");
+    $mbdir = $self->{instance}->folder_to_directory($draftsmbox);
+    my @dstat = stat("$mbdir/1.");
 
     xlog $self, "sizes match";
     $self->assert_num_equals($jstat[7], $dstat[7]);
