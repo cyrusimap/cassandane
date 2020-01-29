@@ -751,7 +751,10 @@ sub test_intermediate_cleanup
         'user.cassandane.INBOX.a' => 1,
     );
 
-    _dbset($self, 'user\x1Fcassandane\x1Fold', '%(I 66eb299a-35a8-423d-a0a6-90cbacfd153a T di C 1 F 1 M 1538674002)');
+    my $key = 'user.cassandane.old';
+    my $intkey = 'N' . $key;
+    $intkey =~ s/\./\x1F/g;
+    _dbset($self, $intkey, '%(I 66eb299a-35a8-423d-a0a6-90cbacfd153a T di C 1 F 1 M 1538674002)');
 
     $imaptalk->create("INBOX.old.foo");
 
@@ -774,8 +777,8 @@ sub test_intermediate_cleanup
     );
 
     # NOTE: This is all very specific!
-    foreach my $key (keys %set) {
-        my $intkey = $key;
+    foreach $key (keys %set) {
+        $intkey = 'N' . $key;
         $intkey =~ s/\./\x1F/g;
         _dbset($self, $intkey, $set{$key});
     }
