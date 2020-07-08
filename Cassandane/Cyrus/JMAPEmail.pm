@@ -18508,4 +18508,123 @@ sub test_email_query_guidsearch_threadkeywords
     $self->assert_deep_equals(\@wantIds, $res->[2][1]{ids});
 }
 
+sub test_email_get_threadid_nonascii_subject
+    :min_version_3_1 :needs_component_jmap :JMAPExtensions
+{
+    my ($self) = @_;
+    my $jmap = $self->{jmap};
+    my $imap = $self->{store}->get_client();
+
+    my $using = [
+        'urn:ietf:params:jmap:core',
+        'urn:ietf:params:jmap:mail',
+        'urn:ietf:params:jmap:submission',
+        'https://cyrusimap.org/ns/jmap/mail',
+        'https://cyrusimap.org/ns/jmap/quota',
+        'https://cyrusimap.org/ns/jmap/debug',
+        'https://cyrusimap.org/ns/jmap/performance',
+        'https://cyrusimap.org/ns/jmap/search',
+    ];
+
+    my $res = $jmap->CallMethods([
+        ['Mailbox/get', {
+            properties => ['name'],
+        }, "R1"]
+    ], $using);
+    my $inbox = $res->[0][1]{list}[0]{id};
+    $self->assert_not_null($inbox);
+
+    xlog $self, "create emails";
+    my %emails = (
+        'original' => {
+            subject => 'foo bar',
+            messageId => ['original@local'],
+        },
+        'reply' => {
+            subject => 'ΑΠ: foo bar',
+            references => ['original@local'],
+        },
+    );
+
+    $res = $jmap->CallMethods([
+        ['Email/set', {
+            create => {
+                msg1 => {
+                    subject => 'foo bar',
+                    messageId => ['msg1@local'],
+                    mailboxIds => {
+                        $inbox => JSON::true,
+                    },
+                    from => [{
+                            name => '', email => 'from@local'
+                        }],
+                    to => [{
+                            name => '', email => 'to@local'
+                        }],
+                    bodyStructure => {
+                        type => 'text/plain',
+                        partId => 'part1',
+                    },
+                    bodyValues => {
+                        part1 => {
+                            value => 'test',
+                        }
+                    },
+                },
+                msg2 => {
+                    subject => 'ΑΠ: foo bar',
+                    references => ['msg1@local'],
+                    mailboxIds => {
+                        $inbox => JSON::true,
+                    },
+                    from => [{
+                            name => '', email => 'from@local'
+                        }],
+                    to => [{
+                            name => '', email => 'to@local'
+                        }],
+                    bodyStructure => {
+                        type => 'text/plain',
+                        partId => 'part1',
+                    },
+                    bodyValues => {
+                        part1 => {
+                            value => 'test',
+                        }
+                    },
+                },
+                msg3 => {
+                    subject => 'Re: ΑΠ: foo bar',
+                    references => ['msg1@local'],
+                    mailboxIds => {
+                        $inbox => JSON::true,
+                    },
+                    from => [{
+                            name => '', email => 'from@local'
+                        }],
+                    to => [{
+                            name => '', email => 'to@local'
+                        }],
+                    bodyStructure => {
+                        type => 'text/plain',
+                        partId => 'part1',
+                    },
+                    bodyValues => {
+                        part1 => {
+                            value => 'test',
+                        }
+                    },
+                },
+            },
+        }, 'R1'],
+    ], $using);
+
+    $self->assert_not_null($res->[0][1]{created}{msg1}{threadId});
+    $self->assert_str_equals($res->[0][1]{created}{msg1}{threadId},
+        $res->[0][1]{created}{msg2}{threadId});
+    $self->assert_str_equals($res->[0][1]{created}{msg1}{threadId},
+        $res->[0][1]{created}{msg3}{threadId});
+}
+
+
 1;
