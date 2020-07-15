@@ -42,8 +42,10 @@ use strict;
 use warnings;
 use DateTime;
 use JSON::XS;
+use Net::DAVTalk;
 use Net::CalDAVTalk 0.12;
 use Data::Dumper;
+use XML::Spice;
 
 use lib '.';
 use base qw(Cassandane::Cyrus::TestCase);
@@ -4424,6 +4426,57 @@ EOF
     $self->assert_matches(qr{An Event}, $response->{content});
     $self->assert_matches(qr{\bprivate\b},
                           $response->{headers}->{'cache-control'});
+}
+
+sub Delete
+{
+    my ($self, $calendarId) = @_;
+    my $CalDAV = $self->{caldav};
+
+    my $URI = $CalDAV->request_url($calendarId);
+    my $Response = $CalDAV->{ua}->delete($URI, {
+            headers => {
+                'Authorization' => $CalDAV->auth_header(),
+            }
+        });
+    my $ResponseContent = $Response->{content} || '';
+    if ($ENV{DEBUGDAV}) {
+        warn "<<<<<<<< DELETE $URI HTTP/1.1\n" .
+        ">>>>>>>> $Response->{protocol} $Response->{status} $Response->{reason}\n$ResponseContent\n" .
+        "========\n\n";
+    }
+
+    return $Response;
+}
+
+sub test_scheddefault_delete
+    :needs_component_httpd
+{
+    my ($self) = @_;
+    my $CalDAV = $self->{caldav};
+
+    my $res = $CalDAV->Request(
+        'PROPFIND',
+        'Inbox',
+        x('D:propfind', $CalDAV->NS(),
+            x('D:prop',
+                x('C:schedule-default-calendar-URL'),
+            ),
+        ),
+        Depth => 0,
+    );
+
+    my $calendarId = $res->{
+        '{DAV:}response'
+        }[0]{'{DAV:}propstat'
+            }[0]{'{DAV:}prop'
+                }{'{urn:ietf:params:xml:ns:caldav}schedule-default-calendar-URL'
+                    }{'{DAV:}href'
+                        }{'content'};
+    $self->assert_not_null($calendarId);
+
+    my $Response = $self->Delete($calendarId);
+    $self->assert_equals('403', $Response->{status});
 }
 
 1;
