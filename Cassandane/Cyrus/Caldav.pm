@@ -4428,7 +4428,7 @@ EOF
                           $response->{headers}->{'cache-control'});
 }
 
-sub Delete
+sub deleteCalendar
 {
     my ($self, $calendarId) = @_;
     my $CalDAV = $self->{caldav};
@@ -4449,8 +4449,7 @@ sub Delete
     return $Response;
 }
 
-sub test_scheddefault_delete
-    :needs_component_httpd
+sub getScheduleDefaultURL
 {
     my ($self) = @_;
     my $CalDAV = $self->{caldav};
@@ -4466,17 +4465,68 @@ sub test_scheddefault_delete
         Depth => 0,
     );
 
-    my $calendarId = $res->{
+    return $res->{
         '{DAV:}response'
         }[0]{'{DAV:}propstat'
             }[0]{'{DAV:}prop'
                 }{'{urn:ietf:params:xml:ns:caldav}schedule-default-calendar-URL'
                     }{'{DAV:}href'
                         }{'content'};
-    $self->assert_not_null($calendarId);
+}
 
-    my $Response = $self->Delete($calendarId);
+sub setScheduleDefaultURL
+    :needs_component_httpd
+{
+    my ($self, $url) = @_;
+    my $CalDAV = $self->{caldav};
+
+    return $CalDAV->Request(
+        'PROPPATCH',
+        'Inbox',
+        x('D:propertyupdate', $CalDAV->NS(),
+            x('D:set',
+                x('D:prop',
+                    x('C:schedule-default-calendar-URL',
+                        x('D:href', $url),
+                    ),
+                ),
+            ),
+        ),
+    );
+}
+
+sub test_scheddefault_delete
+    :needs_component_httpd
+{
+    my ($self) = @_;
+
+    my $url = $self->getScheduleDefaultURL();
+    $self->assert_not_null($url);
+
+    my $Response = $self->deleteCalendar($url);
     $self->assert_equals('403', $Response->{status});
+}
+
+sub test_scheddefault_move
+    :needs_component_httpd
+{
+    my ($self) = @_;
+    my $CalDAV = $self->{caldav};
+
+    my $url = $self->getScheduleDefaultURL();
+    $self->assert_str_equals('/dav/calendars/user/cassandane/Default/', $url);
+
+    xlog "Attempt to move schedule default to non-existent calendar";
+    my $res = $self->setScheduleDefaultURL('/dav/calendars/user/cassandane/foo');
+    $self->assert_not_null($res->{'{DAV:}response'}[0]{'{DAV:}propstat'}[0]{'{DAV:}error'}{
+        '{urn:ietf:params:xml:ns:caldav}valid-schedule-default-calendar-URL'});
+
+    xlog "Create new calendar and make it the schedule default";
+    my $id = $CalDAV->NewCalendar({name => ''});
+    $self->assert_not_null($id);
+    my $newUrl = '/dav/calendars/user/cassandane/' . $id . '/';
+    $res = $self->setScheduleDefaultURL($newUrl);
+    $self->assert_str_equals($newUrl, $self->getScheduleDefaultURL());
 }
 
 1;
