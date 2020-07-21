@@ -255,8 +255,9 @@ sub test_reconstruct_snoozed
 
     # this needs a bit of magic to know where to write... so
     # we do some hard-coded cyrus.index handling
-    my $basedir = $self->{instance}->{basedir};
-    my $file = "$basedir/data/user/cassandane/cyrus.index";
+    my $status = $imaptalk->status("INBOX", "(mailboxid)");
+    my $mbdir = $self->{instance}->folder_to_directory($status->{mailboxid}[0]);
+    my $file = "$mbdir/cyrus.index";
     my $fh = IO::File->new($file, "+<");
     die "NO SUCH FILE $file" unless $fh;
     my $index = Cyrus::IndexFile->new($fh);
