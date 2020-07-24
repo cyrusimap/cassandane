@@ -707,7 +707,7 @@ sub test_rename_deepfolder_intermediates
     $self->assert_null(grep { m/deleting intermediate with no children/ } @syslog);
 
     xlog $self, "Make sure there are no files left with cassandane in the name";
-    $self->assert_null(glob "$self->{instance}{basedir}/conf/user/c/cassandane.*");
+    $self->assert_null(glob $self->{instance}->folder_to_user_directory($mailboxid) . "/*");
     $self->assert(not -d "$self->{instance}->folder_to_directory($mailboxid)");
     $self->assert(not -f "$self->{instance}{basedir}/conf/quota/c/user.cassandane");
 
@@ -718,7 +718,7 @@ sub test_rename_deepfolder_intermediates
     $self->assert_null(grep { m/deleting intermediate with no children/ } @syslog);
 
     xlog $self, "Make sure there are no files left with cassandane in the on the replica";
-    $self->assert_null(glob "$self->{replica}{basedir}/conf/user/c/cassandane.*");
+    $self->assert_null(glob $self->{replica}->folder_to_user_directory($mailboxid) . "/*");
     $self->assert(not -d "$self->{replica}->folder_to_directory($mailboxid)");
     $self->assert(not -f "$self->{replica}{basedir}/conf/quota/c/user.cassandane");
 
