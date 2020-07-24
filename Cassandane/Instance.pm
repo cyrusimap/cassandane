@@ -1965,6 +1965,18 @@ sub folder_to_directory
     return $dir;
 }
 
+sub folder_to_user_directory
+{
+    my ($self, $uniqueid) = @_;
+
+    my $first = substr($uniqueid, 0, 1);
+    my $second = substr($uniqueid, 1, 1);
+
+    my $dir = $self->{basedir} . "/conf/user/$first/$second/$uniqueid";
+    return undef unless -d $dir;
+    return $dir;
+}
+
 sub folder_to_archive_directory
 {
     my ($self, $uniqueid) = @_;
