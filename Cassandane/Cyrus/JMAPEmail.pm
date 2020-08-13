@@ -19642,4 +19642,77 @@ sub test_email_query_unicodefdfx
     $self->assert_num_equals(1, scalar @{$res->[0][1]{ids}});
 }
 
+sub email_changes_destroymbox
+{
+    my ($self) = @_;
+    my $jmap = $self->{jmap};
+
+    xlog "Create a mailbox and email";
+    my $res = $jmap->CallMethods([
+        ['Mailbox/set', {
+            create => {
+                mboxA => {
+                    name => 'A',
+                },
+            },
+        }, 'R1'],
+        ['Email/set', {
+            create => {
+                emailA => {
+                    mailboxIds => {
+                        '#mboxA' => JSON::true,
+                    },
+                    from => [{
+                        name => '', email => 'foo@local'
+                    }],
+                    to => [{
+                        name => '', email => 'bar@local'
+                    }],
+                    subject => 'A',
+                    bodyStructure => {
+                        type => 'text/plain',
+                        partId => 'part1',
+                    },
+                    bodyValues => {
+                        part1 => {
+                            value => 'test',
+                        }
+                    },
+                },
+            },
+        }, 'R2'],
+	]);
+    my $mboxA = $res->[0][1]{created}{mboxA}{id};
+    $self->assert_not_null($mboxA);
+    my $emailIdA = $res->[1][1]{created}{emailA}{id};
+    $self->assert_not_null($emailIdA);
+    my $state = $res->[1][1]{newState};
+    $self->assert_not_null($state);
+
+    xlog "Destroy mailbox and fetch email changes";
+    $res = $jmap->CallMethods([
+        ['Mailbox/set', {
+            destroy => [$mboxA],
+            onDestroyRemoveMessages => JSON::true,
+        }, 'R1'],
+        ['Email/changes', {
+            sinceState => $state,
+        }, 'R2'],
+    ]);
+    $self->assert_str_equals("cannotCalculateChanges", $res->[1][1]{type});
+}
+
+sub test_email_changes_destroymbox_delayed
+    :min_version_3_3 :needs_component_jmap :SearchLanguage :DelayedDelete
+{
+    my ($self) = @_;
+    $self->email_changes_destroymbox();
+}
+
+sub test_email_changes_destroymbox_immediate
+    :min_version_3_3 :needs_component_jmap :ImmediateDelete
+{
+    my ($self) = @_;
+    $self->email_changes_destroymbox();
+}
 1;
