@@ -53,7 +53,10 @@ sub new
     my ($class, @args) = @_;
     my $config = Cassandane::Config->default()->clone();
     $config->set(conversations => 'on');
-    return $class->SUPER::new({ config => $config }, @args);
+    return $class->SUPER::new({
+        config => $config,
+        adminstore => 1,
+    }, @args);
 }
 
 sub set_up
@@ -1655,6 +1658,27 @@ sub test_squatter_partials
 
     # clear syslog to not fail for expected IOERROR messages
     $self->{instance}->getsyslog();
+}
+
+sub test_squatter_skip_index_user
+    :min_version_3_3 :needs_search_xapian :SearchSkipUser
+{
+    my ($self) = @_;
+
+    xlog "create messages for cassandane and skipuser";
+    $self->make_message('msg1') or die;
+    $self->{instance}->create_user("skipuser");
+    $self->{adminstore}->set_folder('user.skipuser');
+    $self->make_message('msg2', store => $self->{adminstore}) or die;
+
+    xlog "run squatter";
+    $self->{instance}->{ignore_syslog} = 1;
+    $self->{instance}->run_command({cyrus => 1}, 'squatter', '-Z');
+
+    xlog "assert only cassandane is indexed";
+    my %data = $self->run_delve('search/c/user/cassandane/xapian/');
+    $self->assert(exists $data{'XSmsg1'});
+    $self->assert(not -d ($self->{instance}->{basedir}.'/search/s/user/skipuser/xapian/'));
 }
 
 1;

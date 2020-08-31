@@ -302,6 +302,11 @@ magic(SearchLanguage => sub {
     my $self = shift;
     $self->config_set('search_index_language' => 'yes');
 });
+magic(SearchSkipUser => sub {
+    my $self = shift;
+    $self->config_set('search_index_skip_users' => 'skipuser');
+});
+
 magic(SieveUTF8Fileinto => sub {
     shift->config_set('sieve_utf8fileinto' => 'yes');
 });
