@@ -66,6 +66,7 @@ sub new
                  conversations => 'yes',
                  conversations_counted_flags => "\\Draft \\Flagged \$IsMailingList \$IsNotification \$HasAttachment",
                  jmapsubmission_deleteonsend => 'no',
+                 notesmailbox => 'Notes',
                  httpmodules => 'carddav caldav jmap',
                  httpallowcompress => 'no');
 
@@ -5692,6 +5693,120 @@ sub test_email_query_inmailboxotherthan
     }, "R1"]], $using);
     $self->assert_num_equals(1, scalar @{$res->[0][1]->{ids}});
     $self->assert_str_equals($emailId2, $res->[0][1]->{ids}[0]);
+}
+
+
+sub test_email_query_inmailboxotherthan_notes
+    :min_version_3_1 :needs_component_jmap :JMAPExtensions
+{
+    my ($self) = @_;
+    my $jmap = $self->{jmap};
+
+    my $store = $self->{store};
+    my $talk = $store->get_client();
+
+    my $res = $jmap->CallMethods([['Mailbox/get', { }, "R1"]]);
+    my $inboxid = $res->[0][1]{list}[0]{id};
+
+    xlog $self, "create mailboxes";
+    $talk->create("INBOX.A") || die;
+    $talk->create("INBOX.Notes") || die;
+    $talk->create("INBOX.C") || die;
+
+    xlog $self, "create some emails to put something in each folder";
+    $store->set_folder("INBOX");
+    $self->make_message("email1") || die;
+    $store->set_folder("INBOX.A");
+    $self->make_message("email2") || die;
+    $store->set_folder("INBOX.Notes");
+    $self->make_message("email3") || die;
+    $store->set_folder("INBOX.C");
+    $self->make_message("email4") || die;
+
+    $res = $jmap->CallMethods([['Mailbox/get', { }, "R1"]]);
+    my %m = map { $_->{name} => $_ } @{$res->[0][1]{list}};
+    my $mboxIdA = $m{"A"}->{id};
+    my $mboxIdNotes = $m{"Notes"}->{id};
+    my $mboxIdC = $m{"C"}->{id};
+    $self->assert_not_null($mboxIdA);
+    $self->assert_not_null($mboxIdNotes);
+    $self->assert_not_null($mboxIdC);
+
+    xlog $self, "create secretword email";
+    $store->set_folder("INBOX.Notes");
+    $self->make_message("secretword") || die;
+
+    xlog $self, "run squatter";
+    $self->{instance}->run_command({cyrus => 1}, 'squatter');
+
+    my $using = [
+        'urn:ietf:params:jmap:core',
+        'urn:ietf:params:jmap:mail',
+        'urn:ietf:params:jmap:submission',
+        'https://cyrusimap.org/ns/jmap/mail',
+        'https://cyrusimap.org/ns/jmap/debug',
+        'https://cyrusimap.org/ns/jmap/performance',
+    ];
+
+    xlog $self, "fetch emails without filter";
+    $res = $jmap->CallMethods([
+        ['Email/query', { }, 'R1'],
+        ['Email/get', {
+            '#ids' => {
+                resultOf => 'R1',
+                name => 'Email/query',
+                path => '/ids'
+            }
+        }, 'R2'],
+    ], $using);
+    $self->assert_num_equals(5, scalar @{$res->[0][1]->{ids}});
+    $self->assert_num_equals(5, scalar @{$res->[1][1]->{list}});
+
+    $res = $jmap->CallMethods([['Email/query', {
+        filter => {
+           operator => "AND",
+           conditions => [
+             { text => "secretword" },
+             { inMailboxOtherThan => [$mboxIdA, $mboxIdC] },
+           ],
+        },
+        disableGuidSearch => JSON::true,
+    }, "R1"]], $using);
+    $self->assert_num_equals(1, scalar @{$res->[0][1]->{ids}});
+
+    $res = $jmap->CallMethods([['Email/query', {
+        filter => {
+           operator => "AND",
+           conditions => [
+             { text => "secretword" },
+             { inMailboxOtherThan => [$mboxIdNotes, $mboxIdC] },
+           ],
+        },
+        disableGuidSearch => JSON::true,
+    }, "R1"]], $using);
+    $self->assert_num_equals(0, scalar @{$res->[0][1]->{ids}});
+
+    $res = $jmap->CallMethods([['Email/query', {
+        filter => {
+           operator => "AND",
+           conditions => [
+             { text => "secretword" },
+             { inMailboxOtherThan => [$mboxIdA, $mboxIdC] },
+           ],
+        },
+    }, "R1"]], $using);
+    $self->assert_num_equals(1, scalar @{$res->[0][1]->{ids}});
+
+    $res = $jmap->CallMethods([['Email/query', {
+        filter => {
+           operator => "AND",
+           conditions => [
+             { text => "secretword" },
+             { inMailboxOtherThan => [$mboxIdNotes, $mboxIdC] },
+           ],
+        },
+    }, "R1"]], $using);
+    $self->assert_num_equals(0, scalar @{$res->[0][1]->{ids}});
 }
 
 
