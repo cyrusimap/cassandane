@@ -43,6 +43,7 @@ use warnings;
 use Cwd qw(abs_path);
 use DateTime;
 use Data::Dumper;
+use File::Temp qw/ tempfile tempdir /;
 
 use lib '.';
 use base qw(Cassandane::Cyrus::TestCase);
@@ -1677,6 +1678,28 @@ sub test_squatter_indexuids
 
     $uids = $imap->search('fuzzy', 'subject', 'msg3');
     $self->assert_deep_equals([3], $uids);
+}
+
+sub test_squatter_indexdir
+    :min_version_3_3 :needs_search_xapian
+{
+    my ($self) = @_;
+    my $imap = $self->{store}->get_client();
+
+    my $dir = tempdir();
+
+    $self->make_message('msg1');
+    $self->make_message('msg2');
+    $self->make_message('msg3');
+
+    $self->{instance}->run_command({cyrus => 1}, 'squatter', '-D',  $dir);
+
+    $self->assert(-e "$dir/conf/user/c/cassandane.xapianactive");
+    $self->assert(-e "$dir/search/c/user/cassandane/xapian/");
+
+    my $basedir = $self->{instance}->{basedir};
+    $self->assert(not -e "$basedir/conf/user/c/cassandane.xapianactive");
+    $self->assert(not -e "$basedir/search/c/user/cassandane/xapian/");
 }
 
 1;
