@@ -1657,4 +1657,26 @@ sub test_squatter_partials
     $self->{instance}->getsyslog();
 }
 
+sub test_squatter_indexuids
+    :min_version_3_3 :needs_search_xapian
+{
+    my ($self) = @_;
+    my $imap = $self->{store}->get_client();
+
+    $self->make_message('msg1');
+    $self->make_message('msg2');
+    $self->make_message('msg3');
+
+    $self->{instance}->run_command({cyrus => 1}, 'squatter', '-M', '2', '-M', '3');
+
+    my $uids = $imap->search('fuzzy', 'subject', 'msg1');
+    $self->assert_deep_equals([], $uids);
+
+    $uids = $imap->search('fuzzy', 'subject', 'msg2');
+    $self->assert_deep_equals([2], $uids);
+
+    $uids = $imap->search('fuzzy', 'subject', 'msg3');
+    $self->assert_deep_equals([3], $uids);
+}
+
 1;
