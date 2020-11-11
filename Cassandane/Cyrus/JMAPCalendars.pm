@@ -546,14 +546,17 @@ sub test_calendar_set_sharewith
                     update => { "$CalendarId" => {
                             "shareWith/manifold" => {
                                 mayReadFreeBusy => JSON::true,
-                                mayRead => JSON::true,
-                                mayWrite => JSON::false,
+                                mayReadItems => JSON::true,
+                                mayUpdatePrivate => JSON::true,
+                                mayAddItems => JSON::false,
                                 mayAdmin => JSON::false
                             },
                             "shareWith/paraphrase" => {
                                 mayReadFreeBusy => JSON::true,
-                                mayRead => JSON::true,
-                                mayWrite => JSON::true,
+                                mayReadItems => JSON::true,
+                                mayAddItems => JSON::true,
+                                mayUpdatePrivate => JSON::true,
+                                mayRemoveOwn => JSON::true,
                                 mayAdmin => JSON::false
                             },
              }}}, "R1"]
@@ -574,8 +577,8 @@ sub test_calendar_set_sharewith
     my $acl = $admintalk->getacl("user.master.#calendars.$CalendarId");
     my %map = @$acl;
     $self->assert_str_equals('lrswipkxtecdan9', $map{cassandane});
-    $self->assert_str_equals('lrs9', $map{manifold});
-    $self->assert_str_equals('lrswiptedn9', $map{paraphrase});
+    $self->assert_str_equals('lrsn9', $map{manifold});
+    $self->assert_str_equals('lrsitedn9', $map{paraphrase});
 
     xlog $self, "check Outbox ACL";
     $acl = $admintalk->getacl("user.master.#calendars.Outbox");
@@ -600,8 +603,8 @@ sub test_calendar_set_sharewith
         $acl = $admintalk->getacl("user.master.#jmap");
         %map = @$acl;
         $self->assert_str_equals('lrswitedn', $map{cassandane});
-        $self->assert_str_equals('lrs', $map{manifold});
-        $self->assert_str_equals('lrswitedn', $map{paraphrase});
+        $self->assert_str_equals('lrsn', $map{manifold});
+        $self->assert_str_equals('lrsitedn', $map{paraphrase});
     }
 
     xlog $self, "Clear initial syslog";
@@ -612,7 +615,9 @@ sub test_calendar_set_sharewith
             ['Calendar/set', {
                     accountId => 'master',
                     update => { "$CalendarId" => {
-                            "shareWith/manifold/mayWrite" => JSON::true,
+                            "shareWith/manifold/mayAddItems" => JSON::true,
+                            "shareWith/manifold/mayUpdatePrivate" => JSON::true,
+                            "shareWith/manifold/mayRemoveOwn" => JSON::true,
              }}}, "R1"]
     ]);
 
@@ -627,8 +632,8 @@ sub test_calendar_set_sharewith
         $acl = $admintalk->getacl("user.master.#jmap");
         %map = @$acl;
         $self->assert_str_equals('lrswitedn', $map{cassandane});
-        $self->assert_str_equals('lrswitedn', $map{manifold});
-        $self->assert_str_equals('lrswitedn', $map{paraphrase});
+        $self->assert_str_equals('lrsitedn', $map{manifold});
+        $self->assert_str_equals('lrsitedn', $map{paraphrase});
     }
 
     xlog $self, "Remove the access for paraphrase";
@@ -650,7 +655,7 @@ sub test_calendar_set_sharewith
     $acl = $admintalk->getacl("user.master.#calendars.$CalendarId");
     %map = @$acl;
     $self->assert_str_equals('lrswipkxtecdan9', $map{cassandane});
-    $self->assert_str_equals('lrswiptedn9', $map{manifold});
+    $self->assert_str_equals('lrsitedn9', $map{manifold});
     $self->assert_null($map{paraphrase});
 
     xlog $self, "check Outbox ACL";
@@ -677,7 +682,7 @@ sub test_calendar_set_sharewith
         $acl = $admintalk->getacl("user.master.#jmap");
         %map = @$acl;
         $self->assert_str_equals('lrswitedn', $map{cassandane});
-        $self->assert_str_equals('lrswitedn', $map{manifold});
+        $self->assert_str_equals('lrsitedn', $map{manifold});
         $self->assert_null($map{paraphrase});
 
         xlog $self, "Remove the access for cassandane";
