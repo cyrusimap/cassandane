@@ -9959,151 +9959,8 @@ sub test_calendarevent_get_recurrenceoverrides_before_after
     }, $res->[1][1]{list}[0]{recurrenceOverrides});
 }
 
-sub test_calendar_set_participantidentities
-    :min_version_3_1 :needs_component_jmap
-{
-    my ($self) = @_;
 
-    my $jmap = $self->{jmap};
-    my $caldav = $self->{caldav};
-
-    my $res = $jmap->CallMethods([
-        ['Calendar/get', {
-            ids => ['Default'],
-            properties => ['participantIdentities'],
-        }, 'R1'],
-    ]);
-
-    # Apple, Thunderbird et al set the default address last.
-    $caldav->Request(
-      'PROPPATCH',
-      'Default',
-      x('D:propertyupdate', $caldav->NS(),
-        x('D:set',
-          x('D:prop',
-            x('C:calendar-user-address-set',
-              x('D:href', 'mailto:baz@local'),
-              x('D:href', 'mailto:bar@local'),
-              x('D:href', 'mailto:foo@local'),
-            )
-          )
-        )
-      )
-    );
-    my $participantIdentities = [{
-        name => '',
-        type => 'imip',
-        uri => 'mailto:foo@local',
-    }, {
-        name => '',
-        type => 'imip',
-        uri => 'mailto:bar@local',
-    }, {
-        name => '',
-        type => 'imip',
-        uri => 'mailto:baz@local',
-    }];
-
-    xlog "cet current participantIdentities value";
-    $res = $jmap->CallMethods([
-        ['Calendar/get', {
-            ids => ['Default'],
-            properties => ['participantIdentities'],
-        }, 'R1'],
-    ]);
-    $self->assert_deep_equals($participantIdentities,
-        $res->[0][1]{list}[0]{participantIdentities});
-
-    # JMAP Calendars spec defines participantIdentities to be server-set,
-    # which means it can be only set with its current value. But we allow
-    # setting it to a new value, if the calendars extension is used.
-
-    my $using = [
-        'urn:ietf:params:jmap:core',
-        'urn:ietf:params:jmap:calendars',
-    ];
-
-    xlog "Set participantIdentities to current value";
-    $res = $jmap->CallMethods([
-        ['Calendar/set', {
-            update => {
-                Default => {
-                    participantIdentities => $participantIdentities,
-                }
-            },
-        }, 'R1'],
-        ['Calendar/get', {
-            ids => ['Default'],
-            properties => ['participantIdentities'],
-        }, 'R2'],
-    ], $using);
-    $self->assert(exists $res->[0][1]{updated}{Default});
-    $self->assert_deep_equals($participantIdentities,
-        $res->[1][1]{list}[0]{participantIdentities});
-
-    $participantIdentities = [{
-        name => '',
-        type => 'imip',
-        uri => 'mailto:xxx@local',
-    }, {
-        name => '',
-        type => 'imip',
-        uri => 'mailto:yyy@local',
-    }];
-
-    xlog "Set participantIdentities without extension capability";
-    $res = $jmap->CallMethods([
-        ['Calendar/set', {
-            update => {
-                Default => {
-                    participantIdentities => $participantIdentities,
-                }
-            },
-        }, 'R1'],
-    ], $using);
-    $self->assert_str_equals('participantIdentities',
-        $res->[0][1]{notUpdated}{Default}{properties}[0]);
-
-    $using = [
-        'urn:ietf:params:jmap:core',
-        'urn:ietf:params:jmap:calendars',
-        'https://cyrusimap.org/ns/jmap/calendars',
-    ];
-
-    xlog "Set participantIdentities with extension capability";
-    $res = $jmap->CallMethods([
-        ['Calendar/set', {
-            update => {
-                Default => {
-                    participantIdentities => $participantIdentities,
-                }
-            },
-        }, 'R1'],
-        ['Calendar/get', {
-            ids => ['Default'],
-            properties => ['participantIdentities'],
-        }, 'R2'],
-    ], $using);
-    $self->assert(exists $res->[0][1]{updated}{Default});
-    $self->assert_deep_equals($participantIdentities,
-        $res->[1][1]{list}[0]{participantIdentities});
-
-    $res = $caldav->Request(
-        'PROPFIND',
-        'Default',
-        x('D:propfind', $caldav->NS(),
-            x('D:prop',
-                x('C:calendar-user-address-set'),
-            ),
-        ),
-        Depth => 0,
-    );
-    my $addressSet = $res->{'{DAV:}response'}[0]{'{DAV:}propstat'}[0]{'{DAV:}prop'}{'{urn:ietf:params:xml:ns:caldav}calendar-user-address-set'}{'{DAV:}href'};
-    $self->assert_str_equals('mailto:yyy@local', $addressSet->[0]{content});
-    $self->assert_str_equals('mailto:xxx@local', $addressSet->[1]{content});
-}
-
-sub test_calendarevent_get_reduceparticipants
+sub test_calendarevent_get_reducepartitipants
     :min_version_3_1 :needs_component_jmap
 {
     my ($self) = @_;
@@ -10181,30 +10038,33 @@ sub test_calendarevent_get_reduceparticipants
             values %{$res->[1][1]{list}[0]{participants}};
     $self->assert_deep_equals($wantUris, \%haveUris);
 
+    $caldav->Request(
+      'PROPPATCH',
+      '',
+      x('D:propertyupdate', $caldav->NS(),
+        x('D:set',
+          x('D:prop',
+            x('C:calendar-user-address-set',
+              x('D:href', 'attendee1@example.com'),
+            )
+          )
+        )
+      )
+    );
+
     $res = $jmap->CallMethods([
-        ['Calendar/set', {
-            update => {
-                Default => {
-                    participantIdentities => [{
-                        name => '',
-                        type => 'imip',
-                        uri => 'mailto:attendee1@example.com',
-                    }],
-                }
-            },
-        }, 'R1'],
         ['CalendarEvent/get', {
             ids => [$eventId],
             reduceParticipants => JSON::true,
             properties => ['participants'],
-        }, 'R2'],
+        }, 'R1'],
     ]);
     $wantUris = {
         'mailto:owner@example.com' => 1,
         'mailto:attendee1@example.com' => 1,
     };
     %haveUris = map { $_->{sendTo}{imip} => 1 }
-            values %{$res->[1][1]{list}[0]{participants}};
+            values %{$res->[0][1]{list}[0]{participants}};
     $self->assert_deep_equals($wantUris, \%haveUris);
 }
 
@@ -12841,6 +12701,103 @@ sub test_calendarevent_set_participant_links_dir
 
     $res = $caldav->Request('GET', $icshref);
     $self->assert_matches(qr/DIR="https:\/\/local\/attendee\/dir2"/, $res->{content});
+}
+
+sub test_participantidentity_get
+    :min_version_3_3 :needs_component_jmap
+{
+    my ($self) = @_;
+    my $jmap = $self->{jmap};
+    my $caldav = $self->{caldav};
+
+    my $res = $jmap->CallMethods([
+        ['ParticipantIdentity/get', {
+        }, 'R1'],
+    ]);
+
+    $self->assert_num_equals(1, scalar @{$res->[0][1]{list}});
+    $self->assert_deep_equals({
+        imip => 'mailto:cassandane@example.com',
+    }, $res->[0][1]{list}[0]{sendTo});
+    my $partId1 = $res->[0][1]{list}[0]{id};
+
+    $caldav->Request(
+      'PROPPATCH',
+      '',
+      x('D:propertyupdate', $caldav->NS(),
+        x('D:set',
+          x('D:prop',
+            x('C:calendar-user-address-set',
+              x('D:href', 'mailto:cassandane@example.com'),
+              x('D:href', 'mailto:foo@local'),
+            )
+          )
+        )
+      )
+    );
+
+    $res = $jmap->CallMethods([
+        ['ParticipantIdentity/get', {
+        }, 'R1'],
+    ]);
+    $self->assert_num_equals(2, scalar @{$res->[0][1]{list}});
+
+    $res = $jmap->CallMethods([
+        ['ParticipantIdentity/get', {
+            ids => [$partId1, 'nope'],
+        }, 'R1'],
+    ]);
+    $self->assert_num_equals(1, scalar @{$res->[0][1]{list}});
+    $self->assert_deep_equals({
+        imip => 'mailto:cassandane@example.com',
+    }, $res->[0][1]{list}[0]{sendTo});
+    $self->assert_deep_equals(['nope'], $res->[0][1]{notFound});
+}
+
+sub test_participantidentity_changes
+    :min_version_3_3 :needs_component_jmap
+{
+    my ($self) = @_;
+    my $jmap = $self->{jmap};
+
+    my $res = $jmap->CallMethods([
+        ['ParticipantIdentity/changes', {
+            sinceState => '0',
+        }, 'R1']
+    ]);
+    $self->assert_str_equals('cannotCalculateChanges', $res->[0][1]{type});
+}
+
+sub test_participantidentity_set
+    :min_version_3_3 :needs_component_jmap
+{
+    my ($self) = @_;
+    my $jmap = $self->{jmap};
+
+    my $res = $jmap->CallMethods([
+        ['ParticipantIdentity/set', {
+            create => {
+                partid1 => {
+                    sendTo => {
+                        imip => 'mailto:foo@local',
+                    },
+                },
+            },
+            update => {
+                partid2 => {
+                    name => 'bar',
+                },
+            },
+            destroy => ['partid3'],
+        }, 'R1']
+    ]);
+
+    $self->assert_str_equals('forbidden',
+        $res->[0][1]{notCreated}{partid1}{type});
+    $self->assert_str_equals('forbidden',
+        $res->[0][1]{notUpdated}{partid2}{type});
+    $self->assert_str_equals('forbidden',
+        $res->[0][1]{notDestroyed}{partid3}{type});
 }
 
 1;
