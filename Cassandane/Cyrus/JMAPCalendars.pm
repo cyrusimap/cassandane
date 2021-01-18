@@ -12818,7 +12818,7 @@ sub test_participantidentity_set
 }
 
 sub test_calendarevent_set_fullblown
-    :min_version_3_3 :needs_component_jmap
+    :min_version_3_4 :needs_component_jmap
 {
     my ($self) = @_;
     my $jmap = $self->{jmap};
@@ -13064,6 +13064,348 @@ sub test_calendarevent_set_fullblown
         }, 'R2'],
     ]);
     $self->assert_normalized_event_equals($event1, $res->[1][1]{list}[0]);
+}
+
+sub test_calendarevent_set_custom_timezones
+    :min_version_3_4 :needs_component_jmap
+{
+    my ($self) = @_;
+    my $jmap = $self->{jmap};
+
+    my $event1 = {
+        calendarIds => {
+            'Default' => JSON::true,
+        },
+        title => 'event1title',
+        start => '2021-01-01T02:00:00',
+        timeZone => '/customtzid',
+        duration => 'PT1H',
+        timeZones => {
+            '/customtzid' => {
+                '@type' => 'TimeZone',
+                tzId => 'MyCustomTzId', # differs from "/customtzid"
+                updated => '2021-01-01T01:00:00Z',
+                url => 'https://local/customtzid',
+                validUntil => '2022-01-01T01:00:00Z',
+                aliases => {
+                    MyCustomTzIdAlias => JSON::true,
+                },
+                standard => [{
+                    '@type' => 'TimeZoneRule',
+                    start => '2007-11-04T02:00:00',
+                    offsetFrom => '-0400',
+                    offsetTo => '-0500',
+                    recurrenceRules => [{
+                        '@type' => 'RecurrenceRule',
+                        frequency => 'yearly',
+                        byMonth => ['11'],
+                        byDay => [{
+                            '@type' => 'NDay',
+                            day => 'su',
+                            nthOfPeriod => 1,
+                        }],
+                        interval => 1,
+                        rscale => 'gregorian',
+                        firstDayOfWeek => 'mo',
+                        skip => 'omit',
+                    }],
+                    names => {
+                        'CUSTOMST' => JSON::true,
+                    },
+                    comments => ['customcomment'],
+                }],
+                daylight => [{
+                    '@type' => 'TimeZoneRule',
+                    start => '2007-03-11T02:00:00',
+                    offsetFrom => '-0500',
+                    offsetTo => '-0400',
+                    recurrenceRules => [{
+                        '@type' => 'RecurrenceRule',
+                        frequency => 'yearly',
+                        byMonth => ['3'],
+                        byDay => [{
+                            '@type' => 'NDay',
+                            day => 'su',
+                            nthOfPeriod => 2,
+                        }],
+                        interval => 1,
+                        rscale => 'gregorian',
+                        firstDayOfWeek => 'mo',
+                        skip => 'omit',
+                    }],
+                    names => {
+                        'CUSTOMDT' => JSON::true,
+                    },
+                    comments => ['customcomment'],
+                }],
+            },
+        },
+    };
+
+    my $res = $jmap->CallMethods([
+        ['CalendarEvent/set', {
+            create => {
+                event1 => $event1,
+            },
+        }, 'R1'],
+        ['CalendarEvent/get', {
+            ids => ['#event1'],
+        }, 'R2'],
+    ]);
+    $self->assert_normalized_event_equals($event1, $res->[1][1]{list}[0]);
+}
+
+sub test_calendarevent_get_custom_timezones_orphans
+    :min_version_3_4 :needs_component_jmap
+{
+    my ($self) = @_;
+
+    my ($id, $ical) = $self->icalfile('orphaned-timezones');
+
+    my $event = $self->putandget_vevent($id, $ical);
+
+    #$self->assert_num_equals(1, scalar keys %{$event->{timeZones}});
+    my @tzids = keys %{$event->{timeZones}};
+    $self->assert_deep_equals(['/customtzid'], \@tzids);
+}
+
+sub test_calendarevent_set_custom_timezones_orphans
+    :min_version_3_4 :needs_component_jmap
+{
+    my ($self) = @_;
+    my $jmap = $self->{jmap};
+
+    my $event1 = {
+        calendarIds => {
+            'Default' => JSON::true,
+        },
+        title => 'event1title',
+        start => '2021-01-01T02:00:00',
+        timeZone => '/customtzid',
+        duration => 'PT1H',
+        timeZones => {
+            '/orphantzid' => {
+                '@type' => 'TimeZone',
+                tzId => 'orphantzid',
+                updated => '2021-01-01T01:00:00Z',
+                validUntil => '2022-01-01T01:00:00Z',
+                standard => [{
+                    '@type' => 'TimeZoneRule',
+                    start => '2007-11-04T02:00:00',
+                    offsetFrom => '-0400',
+                    offsetTo => '-0500',
+                    recurrenceRules => [{
+                        '@type' => 'RecurrenceRule',
+                        frequency => 'yearly',
+                        byMonth => ['11'],
+                        byDay => [{
+                            '@type' => 'NDay',
+                            day => 'su',
+                            nthOfPeriod => 1,
+                        }],
+                        interval => 1,
+                        rscale => 'gregorian',
+                        firstDayOfWeek => 'mo',
+                        skip => 'omit',
+                    }],
+                    names => {
+                        'CUSTOMST' => JSON::true,
+                    },
+                }],
+                daylight => [{
+                    '@type' => 'TimeZoneRule',
+                    start => '2007-03-11T02:00:00',
+                    offsetFrom => '-0500',
+                    offsetTo => '-0400',
+                    recurrenceRules => [{
+                        '@type' => 'RecurrenceRule',
+                        frequency => 'yearly',
+                        byMonth => ['3'],
+                        byDay => [{
+                            '@type' => 'NDay',
+                            day => 'su',
+                            nthOfPeriod => 2,
+                        }],
+                        interval => 1,
+                        rscale => 'gregorian',
+                        firstDayOfWeek => 'mo',
+                        skip => 'omit',
+                    }],
+                }],
+            },
+            '/customtzid' => {
+                '@type' => 'TimeZone',
+                tzId => 'customtzid',
+                updated => '2021-01-01T01:00:00Z',
+                url => 'https://local/customtzid',
+                validUntil => '2022-01-01T01:00:00Z',
+                aliases => {
+                    customtzidAlias => JSON::true,
+                },
+                standard => [{
+                    '@type' => 'TimeZoneRule',
+                    start => '2007-11-04T02:00:00',
+                    offsetFrom => '-0400',
+                    offsetTo => '-0500',
+                    recurrenceRules => [{
+                        '@type' => 'RecurrenceRule',
+                        frequency => 'yearly',
+                        byMonth => ['11'],
+                        byDay => [{
+                            '@type' => 'NDay',
+                            day => 'su',
+                            nthOfPeriod => 1,
+                        }],
+                        interval => 1,
+                        rscale => 'gregorian',
+                        firstDayOfWeek => 'mo',
+                        skip => 'omit',
+                    }],
+                    names => {
+                        'CUSTOMST' => JSON::true,
+                    },
+                    comments => ['customcomment'],
+                }],
+                daylight => [{
+                    '@type' => 'TimeZoneRule',
+                    start => '2007-03-11T02:00:00',
+                    offsetFrom => '-0500',
+                    offsetTo => '-0400',
+                    recurrenceRules => [{
+                        '@type' => 'RecurrenceRule',
+                        frequency => 'yearly',
+                        byMonth => ['3'],
+                        byDay => [{
+                            '@type' => 'NDay',
+                            day => 'su',
+                            nthOfPeriod => 2,
+                        }],
+                        interval => 1,
+                        rscale => 'gregorian',
+                        firstDayOfWeek => 'mo',
+                        skip => 'omit',
+                    }],
+                    names => {
+                        'CUSTOMDT' => JSON::true,
+                    },
+                    comments => ['customcomment'],
+                }],
+            },
+        },
+    };
+
+    my $res = $jmap->CallMethods([
+        ['CalendarEvent/set', {
+            create => {
+                event1 => $event1,
+            },
+        }, 'R1'],
+    ]);
+
+    $self->assert_str_equals('invalidProperties',
+        $res->[0][1]{notCreated}{event1}{type});
+    $self->assert_deep_equals(['timeZones/~1orphantzid'],
+        $res->[0][1]{notCreated}{event1}{properties});
+}
+
+sub test_calendarevent_query_custom_timezones
+    :min_version_3_4 :needs_component_jmap
+{
+    my ($self) = @_;
+    my $jmap = $self->{jmap};
+
+    my $event1 = {
+        calendarIds => {
+            'Default' => JSON::true,
+        },
+        title => 'event1title',
+        start => '2021-01-01T02:00:00',
+        timeZone => '/customtzid',
+        duration => 'PT1H',
+        timeZones => {
+            '/customtzid' => {
+                '@type' => 'TimeZone',
+                tzId => 'MyCustomTzId',
+                updated => '2021-01-01T01:00:00Z',
+                url => 'https://local/customtzid',
+                validUntil => '2022-01-01T01:00:00Z',
+                aliases => {
+                    MyCustomTzIdAlias => JSON::true,
+                },
+                standard => [{
+                    '@type' => 'TimeZoneRule',
+                    start => '2007-11-04T02:00:00',
+                    offsetFrom => '-0400',
+                    offsetTo => '-0500',
+                    recurrenceRules => [{
+                        '@type' => 'RecurrenceRule',
+                        frequency => 'yearly',
+                        byMonth => ['11'],
+                        byDay => [{
+                            '@type' => 'NDay',
+                            day => 'su',
+                            nthOfPeriod => 1,
+                        }],
+                        interval => 1,
+                        rscale => 'gregorian',
+                        firstDayOfWeek => 'mo',
+                        skip => 'omit',
+                    }],
+                    names => {
+                        'CUSTOMST' => JSON::true,
+                    },
+                    comments => ['customcomment'],
+                }],
+                daylight => [{
+                    '@type' => 'TimeZoneRule',
+                    start => '2007-03-11T02:00:00',
+                    offsetFrom => '-0500',
+                    offsetTo => '-0400',
+                    recurrenceRules => [{
+                        '@type' => 'RecurrenceRule',
+                        frequency => 'yearly',
+                        byMonth => ['3'],
+                        byDay => [{
+                            '@type' => 'NDay',
+                            day => 'su',
+                            nthOfPeriod => 2,
+                        }],
+                        interval => 1,
+                        rscale => 'gregorian',
+                        firstDayOfWeek => 'mo',
+                        skip => 'omit',
+                    }],
+                    names => {
+                        'CUSTOMDT' => JSON::true,
+                    },
+                    comments => ['customcomment'],
+                }],
+            },
+        },
+    };
+
+    my $res = $jmap->CallMethods([
+        ['CalendarEvent/set', {
+            create => {
+                event1 => $event1,
+            },
+        }, 'R1'],
+        ['CalendarEvent/query', {
+            filter => {
+                after =>  '2021-01-01T07:00:00Z',
+                before => '2021-01-01T08:00:00Z',
+            },
+        }, 'R2'],
+        ['CalendarEvent/query', {
+            filter => {
+                after =>  '2021-01-01T02:00:00Z',
+                before => '2021-01-01T03:00:00Z',
+            },
+        }, 'R3'],
+    ]);
+    $self->assert_not_null($res->[0][1]{created}{event1});
+    $self->assert_num_equals(1, scalar @{$res->[1][1]{ids}});
+    $self->assert_num_equals(0, scalar @{$res->[2][1]{ids}});
 }
 
 1;
