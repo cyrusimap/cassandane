@@ -630,17 +630,6 @@ sub test_cyr_expire_delete_with_annotation
     $self->check_folder_not_ondisk($subfolder, $subid);
 }
 
-sub user_to_metafile
-{
-    my ($self, $uniqueid, $suffix) = @_;
-
-    my $first = substr($uniqueid, 0, 1);
-    my $second = substr($uniqueid, 1, 1);
-
-    my $file = $self->{instance}->{basedir} . "/conf/user/$first/$second/$uniqueid/$suffix.db";
-    return $file;
-}
-
 # https://github.com/cyrusimap/cyrus-imapd/issues/2413
 sub test_cyr_expire_dont_resurrect_convdb
     :Conversations :DelayedDelete :min_version_3_0 :NoAltNameSpace
@@ -683,7 +672,7 @@ sub test_cyr_expire_dont_resurrect_convdb
     $self->check_folder_ondisk($inbox, $inboxid, expected => \%msg_inbox);
     $self->check_folder_ondisk($subfolder, $subid, expected => \%msg_sub);
 
-    my $conv = $self->user_to_metafile($inboxid, "conversations");
+    my $conv = $self->{instance}->get_conf_user_file('cassandane', 'conversations');
 
     # expect user has a conversations database
     $self->assert(-f "$conv");

@@ -1061,7 +1061,7 @@ sub test_audit_unindexed
     my $inboxid = $status->{mailboxid}[0];
     my $first = substr($inboxid, 0, 1);
     my $second = substr($inboxid, 1, 1);
-    my $xapiandir = "$basedir/search/user/$first/$second/$inboxid/xapian";
+    my $xapiandir = "$basedir/search/user/uuid/$first/$second/$inboxid/xapian";
 
     xlog $self, "Read current cyrus.indexed.db.";
     my $result = $self->{instance}->run_command(

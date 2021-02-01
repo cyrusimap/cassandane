@@ -1972,7 +1972,7 @@ sub folder_to_user_directory
     my $first = substr($uniqueid, 0, 1);
     my $second = substr($uniqueid, 1, 1);
 
-    my $dir = $self->{basedir} . "/conf/user/$first/$second/$uniqueid";
+    my $dir = $self->{basedir} . "/conf/user/uuid/$first/$second/$uniqueid";
     return undef unless -d $dir;
     return $dir;
 }
@@ -2183,7 +2183,7 @@ sub get_sieve_script_dir
         my $first = substr($id, 0, 1);
         my $second = substr($id, 1, 1);
 
-        $sieved .= "/$first/$second/$id";
+        $sieved .= "/uuid/$first/$second/$id";
     }
     else
     {
@@ -2216,7 +2216,7 @@ sub get_conf_user_file
     my $first = substr($id, 0, 1);
     my $second = substr($id, 1, 1);
 
-    my $confdir = "$self->{basedir}/conf/user/$first/$second/$id/$ext.db";
+    my $confdir = "$self->{basedir}/conf/user/uuid/$first/$second/$id/$ext.db";
 
     return $confdir;
 }
