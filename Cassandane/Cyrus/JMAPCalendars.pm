@@ -7109,4 +7109,86 @@ EOF
     $self->assert_str_equals("foo", $res->[1][1]{notFound}[0]);
 }
 
+sub test_calendarevent_get_ignore_embedded_ianatz
+    :min_version_3_4 :needs_component_jmap
+{
+    my ($self) = @_;
+
+    my $jmap = $self->{jmap};
+    my $caldav = $self->{caldav};
+
+    # This timezone offset definitions are crap.
+
+    my $ical = <<EOF;
+BEGIN:VCALENDAR
+CALSCALE:GREGORIAN
+PRODID:-//Bogus//0//EN
+VERSION:2.0
+BEGIN:VTIMEZONE
+TZID:Europe/Moscow
+BEGIN:STANDARD
+DTSTART:20010101T000000
+TZNAME:GMT+3
+TZOFFSETFROM:+023017
+TZOFFSETTO:+023017
+END:STANDARD
+END:VTIMEZONE
+BEGIN:VEVENT
+CREATED:20210303T065445Z
+DTSTAMP:20210303T065447Z
+DTSTART;TZID=Europe/Moscow:20210304T140000
+DURATION:PT1H
+LAST-MODIFIED:20210303T065445Z
+SEQUENCE:0
+SUMMARY:TEST EVENT
+TRANSP:OPAQUE
+UID:123456789
+END:VEVENT
+END:VCALENDAR
+EOF
+
+    my $event = $self->putandget_vevent('123456789', $ical, ['timeZone', 'start', 'duration']);
+    $self->assert_not_null($event);
+    $self->assert_str_equals('2021-03-04T14:00:00', $event->{start});
+    $self->assert_str_equals('Europe/Moscow', $event->{timeZone});
+    $self->assert_str_equals('PT1H', $event->{duration});
+
+    # Same event, but with DTEND instead of DURATION
+
+    $ical = <<EOF;
+BEGIN:VCALENDAR
+CALSCALE:GREGORIAN
+PRODID:-//Bogus//0//EN
+VERSION:2.0
+BEGIN:VTIMEZONE
+TZID:Europe/Moscow
+BEGIN:STANDARD
+DTSTART:20010101T000000
+TZNAME:GMT+3
+TZOFFSETFROM:+023017
+TZOFFSETTO:+023017
+END:STANDARD
+END:VTIMEZONE
+BEGIN:VEVENT
+CREATED:20210303T065445Z
+DTSTAMP:20210303T065447Z
+DTSTART;TZID=Europe/Moscow:20210304T140000
+DTEND;TZID=Europe/Moscow:20210304T150000
+LAST-MODIFIED:20210303T065445Z
+SEQUENCE:0
+SUMMARY:TEST EVENT
+TRANSP:OPAQUE
+UID:123456789
+END:VEVENT
+END:VCALENDAR
+EOF
+
+    $event = $self->putandget_vevent('123456789', $ical, ['timeZone', 'start', 'duration']);
+    $self->assert_not_null($event);
+    $self->assert_str_equals('2021-03-04T14:00:00', $event->{start});
+    $self->assert_str_equals('Europe/Moscow', $event->{timeZone});
+    $self->assert_str_equals('PT1H', $event->{duration});
+}
+
+
 1;
