@@ -370,6 +370,10 @@ magic(LowEmailLimits => sub {
         conversations_max_guidinfolder => 2,
     );
 });
+magic(JMAPGuessTZFname => sub {
+    shift->config_set(jmap_guesstz_fname => '@basedir/conf/guesstz.db');
+});
+
 
 # Run any magic handlers indicated by the test name or attributes
 sub _run_magic

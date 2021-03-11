@@ -13455,4 +13455,150 @@ sub test_calendarevent_set_schedulestatus
         $res->[1][1]{list}[0]{participants}{part1}{scheduleStatus});
 }
 
+sub test_calendarevent_guesstz
+    :min_version_3_5 :needs_component_jmap :JMAPGuessTZFname
+{
+    my ($self) = @_;
+    my $jmap = $self->{jmap};
+    my $caldav = $self->{caldav};
+
+    # Create guesstz database.
+    my $fname = $self->{instance}->{config}->get('jmap_guesstz_fname');
+    $self->{instance}->run_command({cyrus => 1},
+        'cyr_guesstzdb', '-c', '-F', $fname);
+
+    my $eventId = '123456789';
+    my $ical = <<EOF;
+BEGIN:VCALENDAR
+PRODID: -//xxx//yyy//EN
+VERSION:2.0
+BEGIN:VTIMEZONE
+TZID:Custom
+BEGIN:STANDARD
+DTSTART:20061101T020000
+RRULE:FREQ=YEARLY;INTERVAL=1;BYDAY=1SU;BYMONTH=11
+TZOFFSETFROM:-0400
+TZOFFSETTO:-0500
+TZNAME:Standard Time
+END:STANDARD
+BEGIN:DAYLIGHT
+DTSTART:20060301T020000
+RRULE:FREQ=YEARLY;INTERVAL=1;BYDAY=2SU;BYMONTH=3
+TZOFFSETFROM:-0500
+TZOFFSETTO:-0400
+TZNAME:Daylight Savings Time
+END:DAYLIGHT
+END:VTIMEZONE
+BEGIN:VEVENT
+UID:$eventId
+DTSTAMP:20201226T180609
+DTSTART;TZID=Custom:20201227T140000
+SUMMARY:A summary
+CLASS:PUBLIC
+END:VEVENT
+END:VCALENDAR
+EOF
+
+    my $event = $self->putandget_vevent($eventId,
+        $ical, ['timeZone', 'timeZones']);
+    $self->assert_str_equals('US/Eastern', $event->{timeZone});
+    $self->assert_null($event->{timeZones});
+}
+
+sub test_calendarevent_guesstz_gmt
+    :min_version_3_5 :needs_component_jmap :JMAPGuessTZFname
+{
+    my ($self) = @_;
+    my $jmap = $self->{jmap};
+    my $caldav = $self->{caldav};
+
+    # Create guesstz database.
+    my $fname = $self->{instance}->{config}->get('jmap_guesstz_fname');
+    $self->{instance}->run_command({cyrus => 1},
+        'cyr_guesstzdb', '-c', '-F', $fname);
+
+    my $eventId = '123456789';
+    my $ical = <<EOF;
+BEGIN:VCALENDAR
+PRODID: -//xxx//yyy//EN
+VERSION:2.0
+BEGIN:VTIMEZONE
+TZID:Custom
+LAST-MODIFIED:20210127T134508Z
+X-LIC-LOCATION:Etc/GMT+8
+X-PROLEPTIC-TZNAME:-08
+BEGIN:STANDARD
+TZNAME:-08
+TZOFFSETFROM:-0800
+TZOFFSETTO:-0800
+DTSTART:16010101T000000
+END:STANDARD
+END:VTIMEZONE
+BEGIN:VEVENT
+UID:$eventId
+DTSTAMP:20201226T180609
+DTSTART;TZID=Custom:20201227T140000
+SUMMARY:A summary
+CLASS:PUBLIC
+END:VEVENT
+END:VCALENDAR
+EOF
+
+    my $event = $self->putandget_vevent($eventId,
+        $ical, ['timeZone', 'timeZones']);
+    $self->assert_str_equals('Etc/GMT+8', $event->{timeZone});
+    $self->assert_null($event->{timeZones});
+}
+
+sub test_calendarevent_guesstz_recur
+    :min_version_3_5 :needs_component_jmap :JMAPGuessTZFname
+{
+    my ($self) = @_;
+    my $jmap = $self->{jmap};
+    my $caldav = $self->{caldav};
+
+    # Create guesstz database.
+    my $fname = $self->{instance}->{config}->get('jmap_guesstz_fname');
+    $self->{instance}->run_command({cyrus => 1},
+        'cyr_guesstzdb', '-c', '-F', $fname);
+
+    my $eventId = '123456789';
+    my $ical = <<EOF;
+BEGIN:VCALENDAR
+PRODID: -//xxx//yyy//EN
+VERSION:2.0
+BEGIN:VTIMEZONE
+TZID:Custom
+LAST-MODIFIED:20210127T134508Z
+BEGIN:DAYLIGHT
+TZNAME:CEST
+TZOFFSETFROM:+0100
+TZOFFSETTO:+0200
+DTSTART:19810329T020000
+RRULE:FREQ=YEARLY;BYMONTH=3;BYDAY=-1SU
+END:DAYLIGHT
+BEGIN:STANDARD
+TZNAME:CET
+TZOFFSETFROM:+0200
+TZOFFSETTO:+0100
+DTSTART:19961027T030000
+RRULE:FREQ=YEARLY;BYMONTH=10;BYDAY=-1SU
+END:STANDARD
+END:VTIMEZONE
+BEGIN:VEVENT
+UID:$eventId
+DTSTAMP:20201226T180609
+DTSTART;TZID=Custom:20100101T140000
+RRULE:FREQ=MONTHLY;COUNT=48
+SUMMARY:A summary
+CLASS:PUBLIC
+END:VEVENT
+END:VCALENDAR
+EOF
+
+    my $event = $self->putandget_vevent($eventId,
+        $ical, ['timeZone', 'timeZones']);
+    $self->assert_str_equals('Europe/Berlin', $event->{timeZone});
+    $self->assert_null($event->{timeZones});
+}
 1;
