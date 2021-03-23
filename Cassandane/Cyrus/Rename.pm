@@ -753,7 +753,7 @@ sub test_intermediate_cleanup
     my $key = 'user.cassandane.old';
     my $intkey = 'N' . $key;
     $intkey =~ s/\./\x1F/g;
-    _dbset($self, $intkey, '%(I 66eb299a-35a8-423d-a0a6-90cbacfd153a T di C 1 F 1 M 1538674002)');
+    _dbset($self, $intkey, '%(I 66eb299a-35a8-423d-a0a6-90cbacfd153a T edi C 1 F 1 M 1538674002)');
 
     $imaptalk->create("INBOX.old.foo");
 
@@ -768,11 +768,11 @@ sub test_intermediate_cleanup
     );
 
     my %set = (
-      'user.cassandane.hanging' => '%(I b13ba9d4-9d40-4474-911f-77346a73d747 T i C 1 F 1 M 1538674002)',
+      'user.cassandane.hanging' => '%(I b13ba9d4-9d40-4474-911f-77346a73d747 T ei C 1 F 1 M 1538674002)',
       'user.cassandane.a'       => undef,
       'user.cassandane.a.b'     => undef,
-      'user.cassandane.x'       => '%(I 7c89e632-04a0-4560-9a59-18b07c13ddff T i C 1 F 1 M 1538674002)',
-      'user.cassandane.x.y'     => '%(I 385d7a66-6173-4b5e-9340-0301ac55b373 T i C 1 F 1 M 1538674002)',
+      'user.cassandane.x'       => '%(I 7c89e632-04a0-4560-9a59-18b07c13ddff T ei C 1 F 1 M 1538674002)',
+      'user.cassandane.x.y'     => '%(I 385d7a66-6173-4b5e-9340-0301ac55b373 T ei C 1 F 1 M 1538674002)',
     );
 
     # NOTE: This is all very specific!
