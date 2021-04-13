@@ -616,7 +616,6 @@ sub test_rename_paths
     $self->{store}->write_message($msg1, flags => ["\\Seen", "\$NotJunk"]);
     $self->{store}->write_end();
 
-    xlog $self, "XXXXXXXX  $basedir/data/$subdir";
     # check source files exist
     -d "$basedir/data/$subdir" || die;
     -d "$basedir/meta/$subdir" || die;
