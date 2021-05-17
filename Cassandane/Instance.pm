@@ -1960,7 +1960,7 @@ sub folder_to_directory
     my $first = substr($uniqueid, 0, 1);
     my $second = substr($uniqueid, 1, 1);
 
-    my $dir = $self->{basedir} . "/data/$first/$second/$uniqueid";
+    my $dir = $self->{basedir} . "/data/uuid/$first/$second/$uniqueid";
     return undef unless -d $dir;
     return $dir;
 }
@@ -1972,7 +1972,7 @@ sub folder_to_archive_directory
     my $first = substr($uniqueid, 0, 1);
     my $second = substr($uniqueid, 1, 1);
 
-    my $dir = $self->{basedir} . "/archive/$first/$second/$uniqueid";
+    my $dir = $self->{basedir} . "/archive/uuid/$first/$second/$uniqueid";
 #    return undef unless -d $dir;
     return $dir;
 }

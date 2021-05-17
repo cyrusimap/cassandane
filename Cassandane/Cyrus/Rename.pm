@@ -608,7 +608,7 @@ sub test_rename_paths
     my $uniqueid = $status->{mailboxid}[0];
     my $first = substr($uniqueid, 0, 1);
     my $second = substr($uniqueid, 1, 1);
-    my $subdir = "$first/$second/$uniqueid";
+    my $subdir = "uuid/$first/$second/$uniqueid";
 
     $self->{store}->set_folder("INBOX.rename-src.sub");
     $self->{store}->write_begin();
