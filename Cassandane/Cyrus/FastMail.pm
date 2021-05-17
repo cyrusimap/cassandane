@@ -1200,6 +1200,9 @@ sub test_rename_deepfolder_intermediates_rightnow
 
     my $admintalk = $self->{adminstore}->get_client();
 
+    my $status = $admintalk->status('user.cassandane', "(mailboxid)");
+    my $mailboxid = $status->{mailboxid}[0];
+
     $admintalk->setquota('user.cassandane', ['STORAGE', 500000]);
 
     my $rhttp = $self->{replica}->get_service('http');
@@ -1298,7 +1301,7 @@ sub test_rename_deepfolder_intermediates_rightnow
 
     xlog $self, "Make sure there are no files left with cassandane in the name";
     $self->assert_null(glob "$self->{instance}{basedir}/conf/user/c/cassandane.*");
-    $self->assert(not -d "$self->{instance}{basedir}/data/c/user/cassandane");
+    $self->assert(not -d "$self->{instance}->folder_to_directory($mailboxid)");
     $self->assert(not -f "$self->{instance}{basedir}/conf/quota/c/user.cassandane");
 
     # replicate and check the renames
@@ -1308,7 +1311,7 @@ sub test_rename_deepfolder_intermediates_rightnow
 
     xlog $self, "Make sure there are no files left with cassandane in the on the replica";
     $self->assert_null(glob "$self->{replica}{basedir}/conf/user/c/cassandane.*");
-    $self->assert(not -d "$self->{replica}{basedir}/data/c/user/cassandane");
+    $self->assert(not -d "$self->{replica}->folder_to_directory($mailboxid)");
     $self->assert(not -f "$self->{replica}{basedir}/conf/quota/c/user.cassandane");
 
     xlog $self, "Now clean up all the deleted mailboxes";
