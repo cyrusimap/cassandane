@@ -3526,11 +3526,15 @@ sub test_contact_get_invalid_utf8
         }, 'R1']
     ]);
 
-    my $basedir = $self->{instance}->{basedir};
-    copy('data/vcard/invalid-utf8.eml',
-         $basedir.'/data/user/cassandane/#addressbooks/Default/1.') or die;
-    $self->{instance}->run_command({ cyrus => 1 },
-        'reconstruct', 'user.cassandane.#addressbooks.Default');
+    my $store = $self->{store};
+    my $talk = $store->get_client();
+    my $abook = 'user.cassandane.#addressbooks.Default';
+    my $status = $talk->status($abook, "(mailboxid)");
+    my $abookid = $status->{mailboxid}[0];
+    my $dir = $self->{instance}->folder_to_directory($abookid);
+
+    copy('data/vcard/invalid-utf8.eml', $dir.'/1.') or die;
+    $self->{instance}->run_command({ cyrus => 1 }, 'reconstruct', $abook);
 
     $res = $jmap->CallMethods([
         ['Contact/get', {
