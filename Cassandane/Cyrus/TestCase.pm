@@ -368,6 +368,9 @@ magic(LowEmailLimits => sub {
         conversations_max_guidinfolder => 2,
     );
 });
+magic(ConvCountedFlags => sub {
+    shift->config_set(conversations_counted_flags => '\Draft \Flagged $IsMailingList $IsNotification $HasAttachment');
+});
 
 # Run any magic handlers indicated by the test name or attributes
 sub _run_magic

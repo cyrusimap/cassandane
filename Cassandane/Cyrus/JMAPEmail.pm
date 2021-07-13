@@ -5015,7 +5015,7 @@ sub test_email_query_userkeywords
 }
 
 sub test_email_query_threadkeywords
-    :min_version_3_1 :needs_component_sieve :needs_component_jmap
+    :min_version_3_1 :needs_component_sieve :needs_component_jmap :ConvCountedFlags
 {
     my ($self) = @_;
     my %exp;
@@ -5028,11 +5028,6 @@ sub test_email_query_threadkeywords
     $self->assert($self->{store}->get_client()->capability()->{xconversations});
 
     my $convflags = $self->{instance}->{config}->get('conversations_counted_flags');
-    if (not defined $convflags) {
-        xlog $self, "conversations_counted_flags not configured. Skipping test";
-        return;
-    }
-
     my $store = $self->{store};
     my $talk = $store->get_client();
 
