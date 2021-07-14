@@ -6648,7 +6648,7 @@ sub test_calendarevent_query_expandrecurrences_with_exrule
                     title => "event1",
                     description => "",
                     freeBusyStatus => "busy",
-                    start => "2020-08-04T09:00:00.123",
+                    start => "2020-08-04T09:00:00",
                     timeZone => "Europe/Vienna",
                     duration => "PT1H",
                     recurrenceRules => [{
@@ -6663,7 +6663,7 @@ sub test_calendarevent_query_expandrecurrences_with_exrule
                         byMonthDay => [4,22],
                     }],
                     recurrenceOverrides => {
-                        '2021-01-01T09:00:00.123' => {
+                        '2021-01-01T09:00:00' => {
                             title => 'rdate overrides exrule',
                         },
                     },
@@ -6689,11 +6689,11 @@ sub test_calendarevent_query_expandrecurrences_with_exrule
     ]);
     $self->assert_num_equals(5, $res->[0][1]{total});
     $self->assert_deep_equals([
-          "event1uid;2021-01-19T09:00:00.123",
-          "event1uid;2021-01-01T09:00:00.123",
-          "event1uid;2020-11-24T09:00:00.123",
-          "event1uid;2020-10-27T09:00:00.123",
-          "event1uid;2020-09-29T09:00:00.123",
+          "event1uid;2021-01-19T09:00:00",
+          "event1uid;2021-01-01T09:00:00",
+          "event1uid;2020-11-24T09:00:00",
+          "event1uid;2020-10-27T09:00:00",
+          "event1uid;2020-09-29T09:00:00",
     ], $res->[0][1]{ids});
 }
 
@@ -8045,15 +8045,15 @@ sub test_calendarevent_get_utcstart
                         Default => JSON::true,
                     },
                     title => "event1",
-                    start => "2019-12-06T11:21:01.8",
-                    duration => "PT5M0.3S",
+                    start => "2019-12-06T11:21:01",
+                    duration => "PT5M",
                     timeZone => "Europe/Vienna",
                     recurrenceRules => [{
                         frequency => 'daily',
                         count => 3,
                     }],
                     recurrenceOverrides => {
-                        '2019-12-07T11:21:01.8' => {
+                        '2019-12-07T11:21:01' => {
                             start => '2019-12-07T13:00:00',
                         },
                     },
@@ -8070,25 +8070,25 @@ sub test_calendarevent_get_utcstart
     my $event = $res->[1][1]{list}[0];
     $self->assert_not_null($event);
 
-    $self->assert_str_equals('2019-12-06T10:21:01.8Z', $event->{utcStart});
-    $self->assert_str_equals('2019-12-06T10:26:02.1Z', $event->{utcEnd});
+    $self->assert_str_equals('2019-12-06T10:21:01Z', $event->{utcStart});
+    $self->assert_str_equals('2019-12-06T10:26:01Z', $event->{utcEnd});
     $self->assert_str_equals('2019-12-07T12:00:00Z',
-        $event->{recurrenceOverrides}{'2019-12-07T11:21:01.8'}{utcStart});
-    $self->assert_str_equals('2019-12-07T12:05:00.3Z',
-        $event->{recurrenceOverrides}{'2019-12-07T11:21:01.8'}{utcEnd});
+        $event->{recurrenceOverrides}{'2019-12-07T11:21:01'}{utcStart});
+    $self->assert_str_equals('2019-12-07T12:05:00Z',
+        $event->{recurrenceOverrides}{'2019-12-07T11:21:01'}{utcEnd});
 
     # Assert utcStart for regular recurrence instance.
     $res = $jmap->CallMethods([
         ['CalendarEvent/get', {
-            ids => ['eventuid1local;2019-12-08T11:21:01.8'],
+            ids => ['eventuid1local;2019-12-08T11:21:01'],
             properties => ['utcStart', 'utcEnd'],
         }, 'R2']
     ]);
     $event = $res->[0][1]{list}[0];
     $self->assert_not_null($event);
 
-    $self->assert_str_equals('2019-12-08T10:21:01.8Z', $event->{utcStart});
-    $self->assert_str_equals('2019-12-08T10:26:02.1Z', $event->{utcEnd});
+    $self->assert_str_equals('2019-12-08T10:21:01Z', $event->{utcStart});
+    $self->assert_str_equals('2019-12-08T10:26:01Z', $event->{utcEnd});
 
     # Assert utcStart for floating event with calendar timeZone.
     $res = $jmap->CallMethods([
@@ -10621,9 +10621,9 @@ sub test_calendarprincipal_getavailability_showdetails
                     },
                     uid => 'event2uid',
                     title => "event2",
-                    start => "2020-08-07T11:00:00.123",
+                    start => "2020-08-07T11:00:00",
                     timeZone => "Europe/Vienna",
-                    duration => "PT3H0.987S",
+                    duration => "PT3H",
                 },
                 event3 => {
                     calendarIds => {
@@ -10678,11 +10678,11 @@ sub test_calendarprincipal_getavailability_showdetails
             title => 'event1',
         },
     }, {
-        utcStart => "2020-08-07T09:00:00.123Z",
-        utcEnd => "2020-08-07T12:00:01.11Z",
+        utcStart => "2020-08-07T09:00:00Z",
+        utcEnd => "2020-08-07T12:00:00Z",
         busyStatus => 'unavailable',
         event => {
-            start => "2020-08-07T11:00:00.123",
+            start => "2020-08-07T11:00:00",
             title => 'event2',
         },
     }, {
