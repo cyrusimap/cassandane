@@ -1044,7 +1044,7 @@ sub normalize_event
     my ($event) = @_;
 
     if (not exists $event->{q{@type}}) {
-        $event->{q{@type}} = 'JSEvent';
+        $event->{q{@type}} = 'Event';
     }
     if (not exists $event->{freeBusyStatus}) {
         $event->{freeBusyStatus} = 'busy';
@@ -1360,7 +1360,7 @@ sub test_calendarevent_get_simple
 
     my $event = $self->putandget_vevent($id, $ical);
     $self->assert_not_null($event);
-    $self->assert_str_equals('JSEvent', $event->{q{@type}});
+    $self->assert_str_equals('Event', $event->{q{@type}});
     $self->assert_str_equals($id, $event->{uid});
     $self->assert_null($event->{relatedTo});
     $self->assert_str_equals("yo", $event->{title});
@@ -2475,7 +2475,7 @@ sub test_calendarevent_set_bymonth
                         ],
                         "count"=> 3,
                 }],
-                "\@type"=> "JSEvent",
+                "\@type"=> "Event",
                 "title"=> "",
                 "description"=> "",
                 "locations"=> undef,
@@ -3125,7 +3125,7 @@ sub test_calendarevent_set_recurrence_until
         "useDefaultAlerts" => JSON::false,
         "uid" =>"76f46024-7284-4701-b93f-d9cd812f3f43",
         "title" =>"timed event with non-zero time until",
-        "\@type" =>"JSEvent",
+        "\@type" =>"Event",
         "recurrenceRules" => [{
             "frequency" =>"weekly",
             "until" =>"2019-04-20T23:59:59"
@@ -3160,7 +3160,7 @@ sub test_calendarevent_set_recurrence_untilallday
         "useDefaultAlerts" => JSON::false,
         "uid" =>"76f46024-7284-4701-b93f-d9cd812f3f43",
         "title" =>"allday event with non-zero time until",
-        "\@type" =>"JSEvent",
+        "\@type" =>"Event",
         "recurrenceRules" => [{
             "frequency" =>"weekly",
             "until" =>"2019-04-20T23:59:59"
@@ -3190,7 +3190,7 @@ sub test_calendarevent_set_recurrence_bymonthday
 		"start" => "2019-01-31T09:00:00",
 		"duration" => "PT1H",
 		"timeZone" => "Australia/Melbourne",
-		"\@type" => "JSEvent",
+		"\@type" => "Event",
 		"title" => "Recurrence test",
 		"description" => "",
 		"showWithoutTime" => JSON::false,
@@ -12806,7 +12806,7 @@ sub test_calendarevent_set_fullblown
         calendarIds => {
             'Default' => JSON::true,
         },
-        '@type' => 'JSEvent',
+        '@type' => 'Event',
         uid => 'event1uid',
         relatedTo => {
             relatedEventUid => {
@@ -13400,7 +13400,7 @@ sub test_calendarevent_set_schedulestatus
                     calendarIds => {
                         'Default' => JSON::true,
                     },
-                    '@type' => 'JSEvent',
+                    '@type' => 'Event',
                     title => 'test',
                     replyTo => {
                         imip => 'mailto:orga@local',
@@ -13749,7 +13749,7 @@ sub test_calendarevent_set_updateown_removeown
                     calendarIds => {
                         'Default' => JSON::true,
                     },
-                    '@type' => 'JSEvent',
+                    '@type' => 'Event',
                     title => 'eventCassOwner',
                     replyTo => {
                         imip => 'mailto:cassandane@example.com',
@@ -13773,7 +13773,7 @@ sub test_calendarevent_set_updateown_removeown
                     calendarIds => {
                         'Default' => JSON::true,
                     },
-                    '@type' => 'JSEvent',
+                    '@type' => 'Event',
                     title => 'eventShareeOwner',
                     replyTo => {
                         imip => 'mailto:sharee@example.com',
@@ -13797,7 +13797,7 @@ sub test_calendarevent_set_updateown_removeown
                     calendarIds => {
                         'Default' => JSON::true,
                     },
-                    '@type' => 'JSEvent',
+                    '@type' => 'Event',
                     title => 'eventNoOwner',
                     start => '2021-01-02T01:00:00',
                     timeZone => 'Europe/Berlin',
