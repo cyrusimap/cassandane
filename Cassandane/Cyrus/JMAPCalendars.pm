@@ -13637,7 +13637,10 @@ sub test_calendar_set_sharewith_acl
         wantRights => {
             mayAddItems => JSON::true,
             mayUpdateAll => JSON::true,
+            mayUpdateOwn => JSON::true,
+            mayUpdatePrivate => JSON::true,
             mayRemoveAll => JSON::true,
+            mayRemoveOwn => JSON::true,
         },
     }, {
         rights => {
@@ -13649,6 +13652,10 @@ sub test_calendar_set_sharewith_acl
             mayRemoveAll => JSON::true,
         },
         acl => 'wted',
+        wantRights => {
+            mayRemoveAll => JSON::true,
+            mayRemoveOwn => JSON::true,
+        },
     }, {
         rights => {
             mayAdmin => JSON::true,
