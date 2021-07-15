@@ -9013,11 +9013,13 @@ sub test_calendar_get_defaultalerts
     <D:prop>
 <C:default-alarm-vevent-datetime>
 BEGIN:VALARM
+UID:alert1
 TRIGGER:-PT5M
 ACTION:DISPLAY
 DESCRIPTION:alarmTime1
 END:VALARM
 BEGIN:VALARM
+UID:alert2
 TRIGGER:PT0M
 ACTION:DISPLAY
 DESCRIPTION:alarmTime2
@@ -9029,6 +9031,7 @@ END:VALARM
     <D:prop>
 <C:default-alarm-vevent-date>
 BEGIN:VALARM
+UID:alert3
 TRIGGER:PT0S
 ACTION:DISPLAY
 DESCRIPTION:alarmDate1
@@ -9047,32 +9050,37 @@ EOF
             properties => ['defaultAlertsWithTime', 'defaultAlertsWithoutTime'],
         }, 'R1']
     ]);
-    $self->assert_deep_equals([{
-        '@type' => 'Alert',
-        trigger => {
-            '@type' => 'OffsetTrigger',
-            relativeTo => 'start',
-            offset => '-PT5M',
+    $self->assert_deep_equals({
+        alert1 => {
+            '@type' => 'Alert',
+            trigger => {
+                '@type' => 'OffsetTrigger',
+                relativeTo => 'start',
+                offset => '-PT5M',
+            },
+            action => 'display',
         },
-        action => 'display',
-    }, {
-        '@type' => 'Alert',
-        trigger => {
-            '@type' => 'OffsetTrigger',
-            relativeTo => 'start',
-            offset => 'PT0S',
+        alert2 =>  {
+            '@type' => 'Alert',
+            trigger => {
+                '@type' => 'OffsetTrigger',
+                relativeTo => 'start',
+                offset => 'PT0S',
+            },
+            action => 'display',
+        }
+    }, $res->[0][1]{list}[0]{defaultAlertsWithTime});
+    $self->assert_deep_equals({
+        alert3 => {
+            '@type' => 'Alert',
+            trigger => {
+                '@type' => 'OffsetTrigger',
+                relativeTo => 'start',
+                offset => 'PT0S',
+            },
+            action => 'display',
         },
-        action => 'display',
-    }], $res->[0][1]{list}[0]{defaultAlertsWithTime});
-    $self->assert_deep_equals([{
-        '@type' => 'Alert',
-        trigger => {
-            '@type' => 'OffsetTrigger',
-            relativeTo => 'start',
-            offset => 'PT0S',
-        },
-        action => 'display',
-    }], $res->[0][1]{list}[0]{defaultAlertsWithoutTime});
+    }, $res->[0][1]{list}[0]{defaultAlertsWithoutTime});
 }
 
 sub test_calendar_set_defaultalerts
@@ -9083,33 +9091,38 @@ sub test_calendar_set_defaultalerts
     my $jmap = $self->{jmap};
     my $CalDAV = $self->{caldav};
 
-    my $defaultAlertsWithTime = [{
-        '@type' => 'Alert',
-        trigger => {
-            '@type' => 'OffsetTrigger',
-            relativeTo => 'start',
-            offset => '-PT1H',
+    my $defaultAlertsWithTime = {
+        alert1 => {
+            '@type' => 'Alert',
+            trigger => {
+                '@type' => 'OffsetTrigger',
+                relativeTo => 'start',
+                offset => '-PT1H',
+            },
+            action => 'email',
         },
-        action => 'email',
-    }, {
-        '@type' => 'Alert',
-        trigger => {
-            '@type' => 'OffsetTrigger',
-            relativeTo => 'start',
-            offset => 'PT0S',
+        alert2 => {
+            '@type' => 'Alert',
+            trigger => {
+                '@type' => 'OffsetTrigger',
+                relativeTo => 'start',
+                offset => 'PT0S',
+            },
+            action => 'display',
         },
-        action => 'display',
-    }];
+    };
 
-    my $defaultAlertsWithoutTime = [{
-        '@type' => 'Alert',
-        trigger => {
-            '@type' => 'OffsetTrigger',
-            relativeTo => 'start',
-            offset => 'PT0S',
+    my $defaultAlertsWithoutTime = {
+        alert3 => {
+            '@type' => 'Alert',
+            trigger => {
+                '@type' => 'OffsetTrigger',
+                relativeTo => 'start',
+                offset => 'PT0S',
+            },
+            action => 'display',
         },
-        action => 'display',
-    }];
+    };
 
     my $res = $jmap->CallMethods([
         ['Calendar/set', {
@@ -9149,8 +9162,8 @@ sub test_calendar_set_defaultalerts
         }, 'R2']
     ]);
     $self->assert(exists $res->[0][1]{updated}{$calendarId});
-    $self->assert_deep_equals([], $res->[1][1]{list}[0]{defaultAlertsWithTime});
-    $self->assert_deep_equals([], $res->[1][1]{list}[0]{defaultAlertsWithoutTime});
+    $self->assert_null($res->[1][1]{list}[0]{defaultAlertsWithTime});
+    $self->assert_null($res->[1][1]{list}[0]{defaultAlertsWithoutTime});
 }
 
 sub test_calendarevent_set_defaultalerts
@@ -9166,24 +9179,28 @@ sub test_calendarevent_set_defaultalerts
         ['Calendar/set', {
             update => {
                 Default => {
-                    defaultAlertsWithTime => [{
-                        '@type' => 'Alert',
-                         trigger => {
-                            '@type' => 'OffsetTrigger',
-                             relativeTo => 'start',
-                             offset => '-PT5M',
-                         },
-                         action => 'display',
-                    }],
-                    defaultAlertsWithoutTime => [{
-                       '@type' => 'Alert',
-                       trigger => {
-                            '@type' => 'OffsetTrigger',
-                            relativeTo => 'start',
-                            offset => 'PT0S',
+                    defaultAlertsWithTime => {
+                        alert1 => {
+                            '@type' => 'Alert',
+                            trigger => {
+                                '@type' => 'OffsetTrigger',
+                                relativeTo => 'start',
+                                offset => '-PT5M',
+                            },
+                            action => 'display',
+                        },
+                    },
+                    defaultAlertsWithoutTime => {
+                        alert2 => {
+                           '@type' => 'Alert',
+                           trigger => {
+                               '@type' => 'OffsetTrigger',
+                               relativeTo => 'start',
+                               offset => 'PT0S',
+                           },
+                           action => 'display',
                        },
-                       action => 'display',
-                    }],
+                    },
                 }
             }
         }, 'R1'],
@@ -9242,15 +9259,17 @@ sub test_calendarevent_set_defaultalerts_etag
         ['Calendar/set', {
             update => {
                 Default => {
-                    defaultAlertsWithTime => [{
-                        '@type' => 'Alert',
-                         trigger => {
-                            '@type' => 'OffsetTrigger',
-                             relativeTo => 'start',
-                             offset => '-PT5M',
-                         },
-                         action => 'display',
-                    }],
+                    defaultAlertsWithTime => {
+                        alert1 => {
+                            '@type' => 'Alert',
+                            trigger => {
+                                '@type' => 'OffsetTrigger',
+                                relativeTo => 'start',
+                                offset => '-PT5M',
+                            },
+                            action => 'display',
+                        },
+                    },
                 }
             }
         }, 'R1'],
@@ -9310,15 +9329,17 @@ sub test_calendarevent_set_defaultalerts_etag
         ['Calendar/set', {
             update => {
                 Default => {
-                    defaultAlertsWithTime => [{
-                        '@type' => 'Alert',
-                         trigger => {
-                            '@type' => 'OffsetTrigger',
-                             relativeTo => 'start',
-                             offset => '-PT10M',
-                         },
-                         action => 'display',
-                    }],
+                    defaultAlertsWithTime => {
+                        alert2 => {
+                            '@type' => 'Alert',
+                            trigger => {
+                                '@type' => 'OffsetTrigger',
+                                relativeTo => 'start',
+                                offset => '-PT10M',
+                            },
+                            action => 'display',
+                        },
+                    },
                 }
             }
         }, 'R1'],
@@ -9351,15 +9372,17 @@ sub test_calendarevent_set_defaultalerts_etag_shared
         ['Calendar/set', {
             update => {
                 Default => {
-                    defaultAlertsWithTime => [{
-                        '@type' => 'Alert',
-                         trigger => {
-                            '@type' => 'OffsetTrigger',
-                             relativeTo => 'start',
-                             offset => '-PT5M',
-                         },
-                         action => 'display',
-                    }],
+                    defaultAlertsWithTime => {
+                        alert1 => {
+                            '@type' => 'Alert',
+                            trigger => {
+                                '@type' => 'OffsetTrigger',
+                                relativeTo => 'start',
+                                offset => '-PT5M',
+                            },
+                            action => 'display',
+                        },
+                    },
                 }
             }
         }, 'R1'],
@@ -9474,15 +9497,17 @@ sub test_calendarevent_set_defaultalerts_etag_shared
         ['Calendar/set', {
             update => {
                 Default => {
-                    defaultAlertsWithTime => [{
-                        '@type' => 'Alert',
-                        trigger => {
-                            '@type' => 'OffsetTrigger',
-                            relativeTo => 'start',
-                            offset => '-PT10M',
+                    defaultAlertsWithTime => {
+                        alert2 => {
+                            '@type' => 'Alert',
+                            trigger => {
+                                '@type' => 'OffsetTrigger',
+                                relativeTo => 'start',
+                                offset => '-PT10M',
+                            },
+                            action => 'display',
                         },
-                        action => 'display',
-                    }],
+                    },
                 }
             }
         }, 'R1'],
@@ -9524,15 +9549,17 @@ sub test_calendarevent_set_defaultalerts_description
         ['Calendar/set', {
             update => {
                 Default => {
-                    defaultAlertsWithTime => [{
-                        '@type' => 'Alert',
-                         trigger => {
-                            '@type' => 'OffsetTrigger',
-                             relativeTo => 'start',
-                             offset => '-PT5M',
-                         },
-                         action => 'display',
-                    }],
+                    defaultAlertsWithTime => {
+                        alert1 => {
+                            '@type' => 'Alert',
+                            trigger => {
+                                '@type' => 'OffsetTrigger',
+                                relativeTo => 'start',
+                                offset => '-PT5M',
+                            },
+                            action => 'display',
+                        },
+                    },
                 }
             }
         }, 'R1'],
@@ -9574,15 +9601,17 @@ sub test_calendar_defaultalerts_synctoken
         ['Calendar/set', {
             update => {
                 Default => {
-                    defaultAlertsWithTime => [{
-                        '@type' => 'Alert',
-                         trigger => {
-                            '@type' => 'OffsetTrigger',
-                             relativeTo => 'start',
-                             offset => '-PT5M',
-                         },
-                         action => 'display',
-                    }],
+                    defaultAlertsWithTime => {
+                        alert1 => {
+                            '@type' => 'Alert',
+                            trigger => {
+                                '@type' => 'OffsetTrigger',
+                                relativeTo => 'start',
+                                offset => '-PT5M',
+                            },
+                            action => 'display',
+                        },
+                    },
                 }
             }
         }, 'R1'],
@@ -9646,15 +9675,17 @@ sub test_calendar_defaultalerts_synctoken
         ['Calendar/set', {
             update => {
                 Default => {
-                    defaultAlertsWithTime => [{
-                        '@type' => 'Alert',
-                         trigger => {
-                            '@type' => 'OffsetTrigger',
-                             relativeTo => 'start',
-                             offset => '-PT15M',
-                         },
-                         action => 'display',
-                    }],
+                    defaultAlertsWithTime => {
+                        alert2 => {
+                            '@type' => 'Alert',
+                            trigger => {
+                                '@type' => 'OffsetTrigger',
+                                relativeTo => 'start',
+                                offset => '-PT15M',
+                            },
+                            action => 'display',
+                        },
+                    },
                 }
             }
         }, 'R1'],
@@ -9697,15 +9728,17 @@ sub test_calendar_defaultalerts_synctoken_shared
         ['Calendar/set', {
             update => {
                 Default => {
-                    defaultAlertsWithTime => [{
-                        '@type' => 'Alert',
-                         trigger => {
-                            '@type' => 'OffsetTrigger',
-                             relativeTo => 'start',
-                             offset => '-PT5M',
-                         },
-                         action => 'display',
-                    }],
+                    defaultAlertsWithTime => {
+                        alert1 => {
+                            '@type' => 'Alert',
+                            trigger => {
+                                '@type' => 'OffsetTrigger',
+                                relativeTo => 'start',
+                                offset => '-PT5M',
+                            },
+                            action => 'display',
+                        },
+                    },
                 }
             }
         }, 'R1'],
@@ -9796,15 +9829,17 @@ sub test_calendar_defaultalerts_synctoken_shared
         ['Calendar/set', {
             update => {
                 Default => {
-                    defaultAlertsWithTime => [{
-                        '@type' => 'Alert',
-                         trigger => {
-                            '@type' => 'OffsetTrigger',
-                             relativeTo => 'start',
-                             offset => '-PT15M',
-                         },
-                         action => 'display',
-                    }],
+                    defaultAlertsWithTime => {
+                        alert2 => {
+                            '@type' => 'Alert',
+                            trigger => {
+                                '@type' => 'OffsetTrigger',
+                                relativeTo => 'start',
+                                offset => '-PT15M',
+                            },
+                            action => 'display',
+                        },
+                    },
                 }
             }
         }, 'R1'],
