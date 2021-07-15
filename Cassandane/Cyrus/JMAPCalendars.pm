@@ -14143,4 +14143,43 @@ EOF
 
 }
 
+sub test_calendarevent_get_recurrenceid
+    :min_version_3_5 :needs_component_jmap
+{
+    my ($self) = @_;
+    my $jmap = $self->{jmap};
+    my $caldav = $self->{caldav};
+
+    my $ical = <<EOF;
+BEGIN:VCALENDAR
+VERSION:2.0
+PRODID:-//foo//bar//EN
+CALSCALE:GREGORIAN
+BEGIN:VEVENT
+TRANSP:TRANSPARENT
+DTSTART;TZID=Europe/Berlin:20160928T160000
+RECURRENCE-ID;TZID=Europe/London:20160928T010000
+DURATION:PT1H
+UID:2a358cee-6489-4f14-a57f-c104db4dc357
+DTSTAMP:20150928T132434Z
+CREATED:20150928T125212Z
+PRIORITY:3
+SEQUENCE:9
+SUMMARY:test
+RRULE:FREQ=MONTHLY
+LAST-MODIFIED:20150928T132434Z
+END:VEVENT
+END:VCALENDAR
+EOF
+
+    my $event = $self->putandget_vevent('2a358cee-6489-4f14-a57f-c104db4dc357',
+        $ical, ['start', 'timeZone', 'recurrenceId', 'recurrenceIdTimeZone', 'recurrenceRules']);
+
+    $self->assert_str_equals('2016-09-28T16:00:00', $event->{start});
+    $self->assert_str_equals('Europe/Berlin', $event->{timeZone});
+
+    $self->assert_str_equals('2016-09-28T01:00:00', $event->{recurrenceId});
+    $self->assert_str_equals('Europe/London', $event->{recurrenceIdTimeZone});
+}
+
 1;
