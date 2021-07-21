@@ -13467,16 +13467,11 @@ sub test_calendarevent_set_schedulestatus
 }
 
 sub test_calendarevent_guesstz
-    :min_version_3_5 :needs_component_jmap :JMAPGuessTZFname
+    :min_version_3_5 :needs_component_jmap :needs_dependency_guesstz
 {
     my ($self) = @_;
     my $jmap = $self->{jmap};
     my $caldav = $self->{caldav};
-
-    # Create guesstz database.
-    my $fname = $self->{instance}->{config}->get('jmap_guesstz_fname');
-    $self->{instance}->run_command({cyrus => 1},
-        'cyr_guesstzdb', '-c', '-F', $fname);
 
     my $eventId = '123456789';
     my $ical = <<EOF;
@@ -13485,27 +13480,25 @@ PRODID: -//xxx//yyy//EN
 VERSION:2.0
 BEGIN:VTIMEZONE
 TZID:Custom
-BEGIN:STANDARD
-DTSTART:20061101T020000
-RRULE:FREQ=YEARLY;INTERVAL=1;BYDAY=1SU;BYMONTH=11
-TZOFFSETFROM:-0400
-TZOFFSETTO:-0500
-TZNAME:Standard Time
-END:STANDARD
 BEGIN:DAYLIGHT
-DTSTART:20060301T020000
-RRULE:FREQ=YEARLY;INTERVAL=1;BYDAY=2SU;BYMONTH=3
 TZOFFSETFROM:-0500
 TZOFFSETTO:-0400
-TZNAME:Daylight Savings Time
+DTSTART:20070311T020000
+RRULE:FREQ=YEARLY;BYMONTH=3;BYDAY=2SU
 END:DAYLIGHT
+BEGIN:STANDARD
+TZOFFSETFROM:-0400
+TZOFFSETTO:-0500
+DTSTART:20071104T020000
+RRULE:FREQ=YEARLY;BYMONTH=11;BYDAY=1SU
+END:STANDARD
 END:VTIMEZONE
 BEGIN:VEVENT
 UID:$eventId
 DTSTAMP:20201226T180609
 DTSTART;TZID=Custom:20201227T140000
+DURATION:PT1H
 SUMMARY:A summary
-CLASS:PUBLIC
 END:VEVENT
 END:VCALENDAR
 EOF
@@ -13517,16 +13510,11 @@ EOF
 }
 
 sub test_calendarevent_guesstz_gmt
-    :min_version_3_5 :needs_component_jmap :JMAPGuessTZFname
+    :min_version_3_5 :needs_component_jmap :needs_dependency_guesstz
 {
     my ($self) = @_;
     my $jmap = $self->{jmap};
     my $caldav = $self->{caldav};
-
-    # Create guesstz database.
-    my $fname = $self->{instance}->{config}->get('jmap_guesstz_fname');
-    $self->{instance}->run_command({cyrus => 1},
-        'cyr_guesstzdb', '-c', '-F', $fname);
 
     my $eventId = '123456789';
     my $ical = <<EOF;
@@ -13562,16 +13550,11 @@ EOF
 }
 
 sub test_calendarevent_guesstz_recur
-    :min_version_3_5 :needs_component_jmap :JMAPGuessTZFname
+    :min_version_3_5 :needs_component_jmap :needs_dependency_guesstz
 {
     my ($self) = @_;
     my $jmap = $self->{jmap};
     my $caldav = $self->{caldav};
-
-    # Create guesstz database.
-    my $fname = $self->{instance}->{config}->get('jmap_guesstz_fname');
-    $self->{instance}->run_command({cyrus => 1},
-        'cyr_guesstzdb', '-c', '-F', $fname);
 
     my $eventId = '123456789';
     my $ical = <<EOF;
