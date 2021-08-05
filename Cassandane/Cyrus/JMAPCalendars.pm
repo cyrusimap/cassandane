@@ -14495,4 +14495,89 @@ EOF
     $self->assert($attach->[0]->value() =~ /^$webdavAttachURI.+/);
 }
 
+sub test_calendarevent_get_attachbinary
+    :min_version_3_5 :needs_component_jmap
+{
+    my ($self) = @_;
+
+    my ($id, $ical) = $self->icalfile('attachbinary');
+
+    my $event = $self->putandget_vevent($id, $ical);
+    $self->assert_not_null($event);
+    my @links = values %{$event->{links}};
+    $self->assert_num_equals(1, scalar @links);
+    $self->assert_str_equals('data:text/plain;base64,aGVsbG8=', $links[0]{href});
+    $self->assert_str_equals('text/plain', $links[0]{contentType});
+}
+
+sub test_calendarevent_set_attachbinary
+    :min_version_3_5 :needs_component_jmap
+{
+    my ($self) = @_;
+
+    my $jmap = $self->{jmap};
+    my $caldav = $self->{caldav};
+
+    my @testCases = ({
+        link => {
+            href => 'data:;base64,link1',
+        },
+        wantContentType => undef,
+    }, {
+        link => {
+            '@type' => 'Link',
+            href => 'data:application/vnd.type1;base64,link2',
+        },
+        wantContentType => 'application/vnd.type1',
+    });
+
+    for my $i (0 .. $#testCases) {
+        my $tc = $testCases[$i];
+        my $res = $jmap->CallMethods([
+            ['CalendarEvent/set', {
+                create => {
+                    $i => {
+                        calendarIds => {
+                            Default => JSON::true,
+                        },
+                        title => "event1",
+                        start => "2019-12-10T23:30:00",
+                        duration => "PT1H",
+                        timeZone => "Australia/Melbourne",
+                        links => {
+                            link => $tc->{link},
+                        },
+                    },
+                },
+            }, 'R1'],
+            ['CalendarEvent/get', {
+                ids => ['#' . $i],
+                properties => ['links', 'x-href'],
+            }, 'R2'],
+        ]);
+        my $eventId = $res->[0][1]{created}{$i}{id};
+        $self->assert_not_null($eventId);
+        my $xhref = $res->[0][1]{created}{$i}{'x-href'};
+        $self->assert_not_null($xhref);
+
+        my @links = values %{$res->[1][1]{list}[0]{links}};
+        $self->assert_str_equals($tc->{link}{href}, $links[0]->{href});
+        if ($tc->{wantContentType}) {
+            $self->assert_str_equals($tc->{wantContentType},
+                 $links[0]->{contentType});
+         }
+
+        my $caldavResponse = $caldav->Request('GET', $xhref);
+        my $ical = Data::ICal->new(data => $caldavResponse->{content});
+        my %entries = map { $_->ical_entry_type() => $_ } @{$ical->entries()};
+        my $vevent = $entries{'VEVENT'};
+        $self->assert_not_null($vevent);
+
+        my $attach = $vevent->property('ATTACH');
+        $self->assert_num_equals(1, scalar @{$attach});
+        $self->assert_str_equals('BINARY', $attach->[0]->parameters()->{VALUE});
+
+    }
+}
+
 1;
