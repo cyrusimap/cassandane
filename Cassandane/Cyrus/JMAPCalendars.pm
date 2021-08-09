@@ -175,7 +175,7 @@ sub test_calendar_get_shared
     $self->assert_str_equals('manifold', $res->[0][1]{accountId});
     $self->assert_str_equals("Manifold Calendar", $res->[0][1]{list}[0]->{name});
     $self->assert_equals(JSON::true, $res->[0][1]{list}[0]->{myRights}->{mayReadItems});
-    $self->assert_equals(JSON::false, $res->[0][1]{list}[0]->{myRights}{mayAddItems});
+    $self->assert_equals(JSON::false, $res->[0][1]{list}[0]->{myRights}{mayWriteAll});
     my $id = $res->[0][1]{list}[0]->{id};
 
     xlog $self, "refetch calendar";
@@ -550,16 +550,11 @@ sub test_calendar_set_sharewith
                                 mayReadFreeBusy => JSON::true,
                                 mayReadItems => JSON::true,
                                 mayUpdatePrivate => JSON::true,
-                                mayAddItems => JSON::false,
-                                mayAdmin => JSON::false
                             },
                             "shareWith/paraphrase" => {
                                 mayReadFreeBusy => JSON::true,
                                 mayReadItems => JSON::true,
-                                mayAddItems => JSON::true,
-                                mayUpdatePrivate => JSON::true,
-                                mayRemoveOwn => JSON::true,
-                                mayAdmin => JSON::false
+                                mayWriteAll => JSON::true,
                             },
              }}}, "R1"]
     ]);
@@ -579,8 +574,8 @@ sub test_calendar_set_sharewith
     my $acl = $admintalk->getacl("user.master.#calendars.$CalendarId");
     my %map = @$acl;
     $self->assert_str_equals('lrswipkxtecdan9', $map{cassandane});
-    $self->assert_str_equals('lrw49', $map{manifold});
-    $self->assert_str_equals('lrwin459', $map{paraphrase});
+    $self->assert_str_equals('lrw59', $map{manifold});
+    $self->assert_str_equals('lrswitedn79', $map{paraphrase});
 
     xlog $self, "check Outbox ACL";
     $acl = $admintalk->getacl("user.master.#calendars.Outbox");
@@ -606,7 +601,7 @@ sub test_calendar_set_sharewith
         %map = @$acl;
         $self->assert_str_equals('lrswitedn', $map{cassandane});
         $self->assert_str_equals('lrw', $map{manifold});
-        $self->assert_str_equals('lrwin', $map{paraphrase});
+        $self->assert_str_equals('lrswitedn', $map{paraphrase});
     }
 
     xlog $self, "Clear initial syslog";
@@ -617,9 +612,7 @@ sub test_calendar_set_sharewith
             ['Calendar/set', {
                     accountId => 'master',
                     update => { "$CalendarId" => {
-                            "shareWith/manifold/mayAddItems" => JSON::true,
-                            "shareWith/manifold/mayUpdatePrivate" => JSON::true,
-                            "shareWith/manifold/mayRemoveOwn" => JSON::true,
+                            "shareWith/manifold/mayWriteAll" => JSON::true,
              }}}, "R1"]
     ]);
 
@@ -634,8 +627,8 @@ sub test_calendar_set_sharewith
         $acl = $admintalk->getacl("user.master.#jmap");
         %map = @$acl;
         $self->assert_str_equals('lrswitedn', $map{cassandane});
-        $self->assert_str_equals('lrwin', $map{manifold});
-        $self->assert_str_equals('lrwin', $map{paraphrase});
+        $self->assert_str_equals('lrswitedn', $map{manifold});
+        $self->assert_str_equals('lrswitedn', $map{paraphrase});
     }
 
     xlog $self, "Remove the access for paraphrase";
@@ -657,7 +650,7 @@ sub test_calendar_set_sharewith
     $acl = $admintalk->getacl("user.master.#calendars.$CalendarId");
     %map = @$acl;
     $self->assert_str_equals('lrswipkxtecdan9', $map{cassandane});
-    $self->assert_str_equals('lrwin459', $map{manifold});
+    $self->assert_str_equals('lrswitedn579', $map{manifold});
     $self->assert_null($map{paraphrase});
 
     xlog $self, "check Outbox ACL";
@@ -684,7 +677,7 @@ sub test_calendar_set_sharewith
         $acl = $admintalk->getacl("user.master.#jmap");
         %map = @$acl;
         $self->assert_str_equals('lrswitedn', $map{cassandane});
-        $self->assert_str_equals('lrwin', $map{manifold});
+        $self->assert_str_equals('lrswitedn', $map{manifold});
         $self->assert_null($map{paraphrase});
     }
 }
@@ -6177,8 +6170,8 @@ sub test_calendarevent_set_readonly
     my $calendar = $res->[0][1]{list}[0];
     $self->assert_equals(JSON::true, $calendar->{myRights}->{mayReadFreeBusy});
     $self->assert_equals(JSON::true, $calendar->{myRights}->{mayReadItems});
-    $self->assert_equals(JSON::false, $calendar->{myRights}->{mayAddItems});
-    $self->assert_equals(JSON::false, $calendar->{myRights}->{mayUpdateOwn});
+    $self->assert_equals(JSON::false, $calendar->{myRights}->{mayWriteAll});
+    $self->assert_equals(JSON::false, $calendar->{myRights}->{mayWriteOwn});
     $self->assert_equals(JSON::true, $calendar->{myRights}->{mayDelete});
     $self->assert_equals(JSON::true, $calendar->{myRights}->{mayAdmin});
 
@@ -11027,15 +11020,12 @@ sub test_calendarsharenotification_get
         newRights => {
             mayReadFreeBusy => JSON::true,
             mayReadItems => JSON::true,
-            mayAddItems => JSON::false,
+            mayWriteAll => JSON::false,
             mayRSVP => JSON::false,
             mayDelete => JSON::false,
             mayAdmin => JSON::false,
             mayUpdatePrivate => JSON::false,
-            mayUpdateOwn => JSON::false,
-            mayUpdateAll => JSON::false,
-            mayRemoveOwn => JSON::false,
-            mayRemoveAll => JSON::false,
+            mayWriteOwn => JSON::false,
         },
     }, $notif);
 
@@ -13678,14 +13668,25 @@ sub test_calendar_set_sharewith_acl
         acl => 'lrw',
     }, {
         rights => {
-            mayAddItems => JSON::true,
+            mayWriteAll => JSON::true,
         },
-        acl => 'win',
+        acl => 'switedn7',
+        wantRights => {
+            mayWriteAll => JSON::true,
+            mayWriteOwn => JSON::true,
+            mayUpdatePrivate => JSON::true,
+            mayRSVP => JSON::true,
+        },
+    }, {
+        rights => {
+            mayWriteOwn => JSON::true,
+        },
+        acl => 'w6',
     }, {
         rights => {
             mayUpdatePrivate => JSON::true,
         },
-        acl => 'w4',
+        acl => 'w5',
     }, {
         rights => {
             mayRSVP => JSON::true,
@@ -13693,41 +13694,14 @@ sub test_calendar_set_sharewith_acl
         acl => 'w7',
     }, {
         rights => {
-            mayUpdateOwn => JSON::true,
-        },
-        acl => 'w6',
-    }, {
-        rights => {
-            mayUpdateAll => JSON::true,
-        },
-        acl => 'switedn',
-        wantRights => {
-            mayAddItems => JSON::true,
-            mayUpdateAll => JSON::true,
-            mayUpdateOwn => JSON::true,
-            mayUpdatePrivate => JSON::true,
-            mayRemoveAll => JSON::true,
-            mayRemoveOwn => JSON::true,
-        },
-    }, {
-        rights => {
-            mayRemoveOwn => JSON::true,
-        },
-        acl => 'w5',
-    }, {
-        rights => {
-            mayRemoveAll => JSON::true,
-        },
-        acl => 'wted',
-        wantRights => {
-            mayRemoveAll => JSON::true,
-            mayRemoveOwn => JSON::true,
-        },
-    }, {
-        rights => {
             mayAdmin => JSON::true,
         },
         acl => 'wa',
+   }, {
+        rights => {
+            mayDelete => JSON::true,
+        },
+        acl => 'wxc',
     });
 
     foreach(@testCases) {
@@ -13755,13 +13729,10 @@ sub test_calendar_set_sharewith_acl
         my %mergedrights = ((
             mayReadFreeBusy => JSON::false,
             mayReadItems => JSON::false,
-            mayAddItems => JSON::false,
+            mayWriteAll => JSON::false,
+            mayWriteOwn => JSON::false,
             mayUpdatePrivate => JSON::false,
             mayRSVP => JSON::false,
-            mayUpdateOwn => JSON::false,
-            mayUpdateAll => JSON::false,
-            mayRemoveOwn => JSON::false,
-            mayRemoveAll => JSON::false,
             mayAdmin => JSON::false,
             mayDelete => JSON::false,
         ), %{$_->{wantRights}});
@@ -13773,7 +13744,7 @@ sub test_calendar_set_sharewith_acl
     }
 }
 
-sub test_calendarevent_set_updateown_removeown
+sub test_calendarevent_set_writeown
     :min_version_3_5 :needs_component_jmap
 {
     my ($self) = @_;
@@ -13804,9 +13775,8 @@ sub test_calendarevent_set_updateown_removeown
                     shareWith => {
                         sharee => {
                             mayReadItems => JSON::true,
-                            mayUpdateOwn => JSON::true,
+                            mayWriteOwn => JSON::true,
                             mayUpdatePrivate => JSON::true,
-                            mayRemoveOwn => JSON::true,
                         },
                     },
                 },
@@ -13947,7 +13917,7 @@ sub test_calendarevent_set_updateown_removeown
     $self->assert(grep /$eventNoOwner/, @{$res->[0][1]{destroyed}});
 }
 
-sub test_calendarevent_set_updateown_removeown_caldav
+sub test_calendarevent_set_writeown_caldav
     :min_version_3_5 :needs_component_jmap
 {
     my ($self) = @_;
@@ -13975,9 +13945,8 @@ sub test_calendarevent_set_updateown_removeown_caldav
                     shareWith => {
                         sharee => {
                             mayReadItems => JSON::true,
-                            mayUpdateOwn => JSON::true,
+                            mayWriteOwn => JSON::true,
                             mayUpdatePrivate => JSON::true,
-                            mayRemoveOwn => JSON::true,
                         },
                     },
                 },
