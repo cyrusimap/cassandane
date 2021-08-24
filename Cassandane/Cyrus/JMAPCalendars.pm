@@ -4450,8 +4450,8 @@ sub test_calendarevent_query
     xlog $self, "get filtered calendar event list with flat filter";
     $res = $jmap->CallMethods([ ['CalendarEvent/query', {
                     "filter" => {
-                        "after" => "2015-12-31T00:00:00Z",
-                        "before" => "2016-12-31T23:59:59Z",
+                        "after" => "2015-12-31T00:00:00",
+                        "before" => "2016-12-31T23:59:59",
                         "text" => "foo",
                         "description" => "bar"
                     }
@@ -4466,8 +4466,8 @@ sub test_calendarevent_query
                         "operator" => "AND",
                         "conditions" => [
                             {
-                                "after" => "2015-12-31T00:00:00Z",
-                                "before" => "2016-12-31T23:59:59Z"
+                                "after" => "2015-12-31T00:00:00",
+                                "before" => "2016-12-31T23:59:59"
                             },
                             {
                                 "text" => "foo",
@@ -4581,8 +4581,8 @@ sub test_calendarevent_query_deleted_calendar
     xlog $self, "get filtered calendar event list";
     $res = $jmap->CallMethods([ ['CalendarEvent/query', {
                     "filter" => {
-                        "after" => "2015-12-31T00:00:00Z",
-                        "before" => "2016-12-31T23:59:59Z"
+                        "after" => "2015-12-31T00:00:00",
+                        "before" => "2016-12-31T23:59:59"
                     }
                 }, "R1"] ]);
     $self->assert_num_equals(2, $res->[0][1]{total});
@@ -4594,8 +4594,8 @@ sub test_calendarevent_query_deleted_calendar
     xlog $self, "get filtered calendar event list";
     $res = $jmap->CallMethods([ ['CalendarEvent/query', {
                     "filter" => {
-                        "after" => "2015-12-31T00:00:00Z",
-                        "before" => "2016-12-31T23:59:59Z"
+                        "after" => "2015-12-31T00:00:00",
+                        "before" => "2016-12-31T23:59:59"
                     }
                 }, "R1"] ]);
     $self->assert_num_equals(1, $res->[0][1]{total});
@@ -4700,8 +4700,8 @@ sub test_calendarevent_query_shared
         $res = $jmap->CallMethods([ ['CalendarEvent/query', {
                         accountId => $account,
                         "filter" => {
-                            "after" => "2015-12-31T00:00:00Z",
-                            "before" => "2016-12-31T23:59:59Z",
+                            "after" => "2015-12-31T00:00:00",
+                            "before" => "2016-12-31T23:59:59",
                             "text" => "foo",
                             "description" => "bar"
                         }
@@ -4717,8 +4717,8 @@ sub test_calendarevent_query_shared
                             "operator" => "AND",
                             "conditions" => [
                                 {
-                                    "after" => "2015-12-31T00:00:00Z",
-                                    "before" => "2016-12-31T23:59:59Z"
+                                    "after" => "2015-12-31T00:00:00",
+                                    "before" => "2016-12-31T23:59:59"
                                 },
                                 {
                                     "text" => "foo",
@@ -4805,8 +4805,8 @@ sub test_calendarevent_query_datetime
     # Exact start and end match
     $res = $jmap->CallMethods([['CalendarEvent/query', {
                     "filter" => {
-                        "after" =>  "2016-01-01T08:00:00Z",
-                        "before" => "2016-01-01T09:00:00Z",
+                        "after" =>  "2016-01-01T08:00:00",
+                        "before" => "2016-01-01T09:00:00",
                     },
                 }, "R1"]]);
     $self->assert_num_equals(1, $res->[0][1]{total});
@@ -4814,13 +4814,13 @@ sub test_calendarevent_query_datetime
     # Check that boundaries are exclusive
     $res = $jmap->CallMethods([['CalendarEvent/query', {
                     "filter" => {
-                        "after" =>  "2016-01-01T09:00:00Z",
+                        "after" =>  "2016-01-01T09:00:00",
                     },
                 }, "R1"]]);
     $self->assert_num_equals(0, $res->[0][1]{total});
     $res = $jmap->CallMethods([['CalendarEvent/query', {
                     "filter" => {
-                        "before" =>  "2016-01-01T08:00:00Z",
+                        "before" =>  "2016-01-01T08:00:00",
                     },
                 }, "R1"]]);
     $self->assert_num_equals(0, $res->[0][1]{total});
@@ -4828,8 +4828,8 @@ sub test_calendarevent_query_datetime
     # Embedded subrange matches
     $res = $jmap->CallMethods([['CalendarEvent/query', {
                     "filter" => {
-                        "after" =>  "2016-01-01T08:15:00Z",
-                        "before" => "2016-01-01T08:45:00Z",
+                        "after" =>  "2016-01-01T08:15:00",
+                        "before" => "2016-01-01T08:45:00",
                     },
                 }, "R1"]]);
     $self->assert_num_equals(1, $res->[0][1]{total});
@@ -4837,15 +4837,15 @@ sub test_calendarevent_query_datetime
     # Overlapping subrange matches
     $res = $jmap->CallMethods([['CalendarEvent/query', {
                     "filter" => {
-                        "after" =>  "2016-01-01T08:15:00Z",
-                        "before" => "2016-01-01T09:15:00Z",
+                        "after" =>  "2016-01-01T08:15:00",
+                        "before" => "2016-01-01T09:15:00",
                     },
                 }, "R1"]]);
     $self->assert_num_equals(1, $res->[0][1]{total});
     $res = $jmap->CallMethods([['CalendarEvent/query', {
                     "filter" => {
-                        "after" =>  "2016-01-01T07:45:00Z",
-                        "before" => "2016-01-01T08:15:00Z",
+                        "after" =>  "2016-01-01T07:45:00",
+                        "before" => "2016-01-01T08:15:00",
                     },
                 }, "R1"]]);
     $self->assert_num_equals(1, $res->[0][1]{total});
@@ -4872,14 +4872,14 @@ sub test_calendarevent_query_datetime
     # Assert both events are found
     $res = $jmap->CallMethods([['CalendarEvent/query', {
                     "filter" => {
-                        "after" =>  "2016-01-01T00:00:00Z",
+                        "after" =>  "2016-01-01T00:00:00",
                     },
                 }, "R1"]]);
     $self->assert_num_equals(2, $res->[0][1]{total});
     # Search close to eternity
     $res = $jmap->CallMethods([['CalendarEvent/query', {
                     "filter" => {
-                        "after" =>  "2038-01-01T00:00:00Z",
+                        "after" =>  "2038-01-01T00:00:00",
                     },
                 }, "R1"]]);
     $self->assert_num_equals(1, $res->[0][1]{total});
@@ -4916,8 +4916,8 @@ sub test_calendarevent_query_date
     # Match on start and end day
     $res = $jmap->CallMethods([['CalendarEvent/query', {
                     "filter" => {
-                        "after" =>  "2016-01-01T00:00:00Z",
-                        "before" => "2016-01-03T23:59:59Z",
+                        "after" =>  "2016-01-01T00:00:00",
+                        "before" => "2016-01-03T23:59:59",
                     },
                 }, "R1"]]);
     $self->assert_num_equals(1, $res->[0][1]{total});
@@ -4925,8 +4925,8 @@ sub test_calendarevent_query_date
     # Match after on the first second of the start day
     $res = $jmap->CallMethods([['CalendarEvent/query', {
                     "filter" => {
-                        "after" =>  "2016-01-01T00:00:00Z",
-                        "before" => "2016-01-03T00:00:00Z",
+                        "after" =>  "2016-01-01T00:00:00",
+                        "before" => "2016-01-03T00:00:00",
                     },
                 }, "R1"]]);
     $self->assert_num_equals(1, $res->[0][1]{total});
@@ -4934,8 +4934,8 @@ sub test_calendarevent_query_date
     # Match before on the last second of the end day
     $res = $jmap->CallMethods([['CalendarEvent/query', {
                     "filter" => {
-                        "after" =>  "2016-01-03T23:59:59Z",
-                        "before" => "2016-01-03T23:59:59Z",
+                        "after" =>  "2016-01-03T23:59:59",
+                        "before" => "2016-01-03T23:59:59",
                     },
                 }, "R1"]]);
     $self->assert_num_equals(1, $res->[0][1]{total});
@@ -4943,8 +4943,8 @@ sub test_calendarevent_query_date
     # Match on interim day
     $res = $jmap->CallMethods([['CalendarEvent/query', {
                     "filter" => {
-                        "after" =>  "2016-01-02T00:00:00Z",
-                        "before" => "2016-01-03T00:00:00Z",
+                        "after" =>  "2016-01-02T00:00:00",
+                        "before" => "2016-01-03T00:00:00",
                     },
                 }, "R1"]]);
     $self->assert_num_equals(1, $res->[0][1]{total});
@@ -4952,15 +4952,15 @@ sub test_calendarevent_query_date
     # Match on partially overlapping timerange
     $res = $jmap->CallMethods([['CalendarEvent/query', {
                     "filter" => {
-                        "after" =>  "2015-12-31T12:00:00Z",
-                        "before" => "2016-01-01T12:00:00Z",
+                        "after" =>  "2015-12-31T12:00:00",
+                        "before" => "2016-01-01T12:00:00",
                     },
                 }, "R1"]]);
     $self->assert_num_equals(1, $res->[0][1]{total});
     $res = $jmap->CallMethods([['CalendarEvent/query', {
                     "filter" => {
-                        "after" =>  "2015-01-03T12:00:00Z",
-                        "before" => "2016-01-04T12:00:00Z",
+                        "after" =>  "2015-01-03T12:00:00",
+                        "before" => "2016-01-04T12:00:00",
                     },
                 }, "R1"]]);
     $self->assert_num_equals(1, $res->[0][1]{total});
@@ -4969,8 +4969,8 @@ sub test_calendarevent_query_date
     # a full-day event starting on that day still matches.
     $res = $jmap->CallMethods([['CalendarEvent/query', {
                     "filter" => {
-                        "after" =>  "2015-12-31T00:00:00Z",
-                        "before" => "2016-01-01T00:00:00Z",
+                        "after" =>  "2015-12-31T00:00:00",
+                        "before" => "2016-01-01T00:00:00",
                     },
                 }, "R1"]]);
     $self->assert_num_equals(1, $res->[0][1]{total});
@@ -4978,8 +4978,8 @@ sub test_calendarevent_query_date
     # In DAV db the event ends at 20160104. Test that it isn't returned.
     $res = $jmap->CallMethods([['CalendarEvent/query', {
                     "filter" => {
-                        "after" =>  "2016-01-04T00:00:00Z",
-                        "before" => "2016-01-04T23:59:59Z",
+                        "after" =>  "2016-01-04T00:00:00",
+                        "before" => "2016-01-04T23:59:59",
                     },
                 }, "R1"]]);
     $self->assert_num_equals(0, $res->[0][1]{total});
@@ -5005,14 +5005,14 @@ sub test_calendarevent_query_date
     # Assert both events are found
     $res = $jmap->CallMethods([['CalendarEvent/query', {
                     "filter" => {
-                        "after" =>  "2016-01-01T00:00:00Z",
+                        "after" =>  "2016-01-01T00:00:00",
                     },
                 }, "R1"]]);
     $self->assert_num_equals(2, $res->[0][1]{total});
     # Search close to eternity
     $res = $jmap->CallMethods([['CalendarEvent/query', {
                     "filter" => {
-                        "after" =>  "2038-01-01T00:00:00Z",
+                        "after" =>  "2038-01-01T00:00:00",
                     },
                 }, "R1"]]);
     $self->assert_num_equals(1, $res->[0][1]{total});
@@ -5169,16 +5169,16 @@ sub test_calendarevent_query_unixepoch
 
     $res = $jmap->CallMethods([['CalendarEvent/query', {
                     "filter" => {
-                        "after" =>  "1969-01-01T00:00:00Z",
-                        "before" => "1969-12-31T23:59:59Z",
+                        "after" =>  "1969-01-01T00:00:00",
+                        "before" => "1969-12-31T23:59:59",
                     },
                 }, "R1"]]);
     $self->assert_num_equals(1, $res->[0][1]{total});
 
     $res = $jmap->CallMethods([['CalendarEvent/query', {
                     "filter" => {
-                        "after" =>  "1949-06-20T00:00:00Z",
-                        "before" => "1968-10-14T00:00:00Z",
+                        "after" =>  "1949-06-20T00:00:00",
+                        "before" => "1968-10-14T00:00:00",
                     },
                 }, "R1"]]);
     $self->assert_num_equals(0, $res->[0][1]{total});
@@ -6601,7 +6601,7 @@ sub test_calendarevent_query_expandrecurrences
     $res = $jmap->CallMethods([
         ['CalendarEvent/query', {
             filter => {
-                before => '2019-02-01T00:00:00Z',
+                before => '2019-02-01T00:00:00',
             },
             sort => [{
                 property => 'start',
@@ -6672,7 +6672,7 @@ sub test_calendarevent_query_expandrecurrences_with_exrule
     $res = $jmap->CallMethods([
         ['CalendarEvent/query', {
             filter => {
-                before => '2021-02-01T00:00:00Z',
+                before => '2021-02-01T00:00:00',
             },
             sort => [{
                 property => 'start',
@@ -7556,8 +7556,8 @@ EOF
     my $res = $jmap->CallMethods([
         ['CalendarEvent/query', {
             filter => {
-                after =>  '2020-04-21T14:00:00Z',
-                before => '2020-04-22T13:59:59Z',
+                after =>  '2020-04-21T14:00:00',
+                before => '2020-04-22T13:59:59',
             },
             expandRecurrences => JSON::true,
         }, 'R1'],
@@ -7837,14 +7837,14 @@ EOF
     $res = $jmap->CallMethods([
         ['CalendarEvent/query', {
             filter => {
-                after =>  '2021-03-27T23:00:00Z',
-                before => '2021-03-28T02:00:00Z'
+                after =>  '2021-03-27T23:00:00',
+                before => '2021-03-28T02:00:00'
             },
         }, 'R1'],
         ['CalendarEvent/query', {
             filter => {
-                after =>  '2021-03-28T02:00:00Z',
-                before => '2021-03-28T23:00:00Z'
+                after =>  '2021-03-28T02:00:00',
+                before => '2021-03-28T23:00:00'
             },
         }, 'R2'],
     ]);
@@ -13445,14 +13445,14 @@ sub test_calendarevent_query_custom_timezones
         }, 'R1'],
         ['CalendarEvent/query', {
             filter => {
-                after =>  '2021-01-01T07:00:00Z',
-                before => '2021-01-01T08:00:00Z',
+                after =>  '2021-01-01T07:00:00',
+                before => '2021-01-01T08:00:00',
             },
         }, 'R2'],
         ['CalendarEvent/query', {
             filter => {
-                after =>  '2021-01-01T02:00:00Z',
-                before => '2021-01-01T03:00:00Z',
+                after =>  '2021-01-01T02:00:00',
+                before => '2021-01-01T03:00:00',
             },
         }, 'R3'],
     ]);
@@ -14755,6 +14755,68 @@ EOF
             title => 'testWithDateRecurId',
         },
     }, $event->{recurrenceOverrides});
+}
+
+sub test_calendarevent_query_with_timezone
+    :min_version_3_5 :needs_component_jmap
+{
+    my ($self) = @_;
+    my $jmap = $self->{jmap};
+
+    xlog "Create event";
+    my $res = $jmap->CallMethods([
+        ['CalendarEvent/set', {
+            create => {
+                event => {
+                    calendarIds => {
+                        Default => JSON::true,
+                    },
+                    title => 'event',
+                    start => '2021-08-24T14:30:00',
+                    duration => 'PT1H',
+                    timeZone => 'Etc/UTC',
+                },
+            },
+        }, 'R1'],
+    ]);
+    my $eventId = $res->[0][1]{created}{event}{id};
+    $self->assert_not_null($eventId);
+
+    my @testCases = ({
+        filter => {
+            after => '2021-08-24T14:30:00',
+        },
+        wantIds => [$eventId],
+    }, {
+        filter => {
+            after => '2021-08-25T00:30:00',
+        },
+        timeZone => 'Australia/Melbourne',
+        wantIds => [$eventId],
+    }, {
+        filter => {
+            before => '2021-08-24T15:30:00',
+        },
+        wantIds => [$eventId],
+    }, {
+        filter => {
+            before => '2021-08-25T01:30:00',
+        },
+        timeZone => 'Australia/Melbourne',
+        wantIds => [$eventId],
+    });
+
+    foreach(@testCases) {
+        my $args = {
+            filter => $_->{filter},
+        };
+        $args->{timeZone} = $_->{timeZone} if defined;
+
+        $res = $jmap->CallMethods([
+            ['CalendarEvent/query', $args, 'R1'],
+        ]);
+        $self->assert_deep_equals($_->{wantIds}, $res->[0][1]{ids});
+    }
 }
 
 1;
