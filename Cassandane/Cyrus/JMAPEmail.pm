@@ -22306,4 +22306,338 @@ EOF
     $self->assert_equals(JSON::true, $res->[1][1]{list}[0]{hasAttachment});
 }
 
+sub test_email_query_threadkeywords_sieve
+    :min_version_3_5 :needs_component_sieve :needs_component_jmap :ConvCountedFlags :JMAPExtensions
+{
+    my ($self) = @_;
+    my $jmap = $self->{jmap};
+    my $imap = $self->{store}->get_client();
+
+
+    xlog "Install someInThreadKeyword Sieve script";
+    $self->{instance}->install_sieve_script(<<'EOF'
+require ["x-cyrus-jmapquery", "x-cyrus-log", "variables", "fileinto"];
+if not
+  allof( not string :is "${stop}" "Y",
+    jmapquery text:
+  {
+        "someInThreadHaveKeyword" : "$Flagged"
+  }
+.
+  )
+{
+    discard;
+}
+EOF
+    );
+
+    my $email1 = <<'EOF';
+From: addr1@local
+To: addr2@local
+Subject: email1
+Date: Wed, 25 Aug 2021 09:00:00 +0200
+User-Agent: Cyrus-JMAP
+Mime-Version: 1.0
+Message-Id: <msgid.email1@local>
+Content-Type: text/plain
+
+email1
+EOF
+    $email1 =~ s/\r?\n/\r\n/gs;
+
+    my $email2 = <<'EOF';
+From: addr2@local
+To: addr1@local
+Subject: Re: email1
+Date: Wed, 25 Aug 2021 09:00:00 +0200
+User-Agent: Cyrus-JMAP
+Mime-Version: 1.0
+Message-Id: <msgid.email2@local>
+In-Reply-To: <msgid.email1@local>
+References: <msgid.email1@local>
+X-ME-Message-Id: <x-me-msgid2@local>
+Content-Type: text/plain
+
+email2
+EOF
+    $email2 =~ s/\r?\n/\r\n/gs;
+
+    my $email3 = <<'EOF';
+From: addr1@local
+To: addr2@local
+Subject: Re: email1
+Date: Mon, 13 Apr 2020 10:00:00 +0200
+Message-Id: <msgid.email3@local>
+In-Reply-To: <msgid.email2@local>
+References: <msgid.email1@local> <msgid.email2@local>
+X-ME-Message-Id: <x-me-msgid3@local>
+MIME-Version: 1.0
+
+email3
+EOF
+    $email3 =~ s/\r?\n/\r\n/gs;
+
+    my $email4 = <<'EOF';
+From: addr2@local
+To: addr1@local
+Subject: Re: email1
+Date: Mon, 13 Apr 2020 11:00:00 +0200
+Message-Id: <msgid.email4@local>
+In-Reply-To: <msgid.email3@local>
+References: <msgid.email1@local> <msgid.email2@local> <msgid.email3@local>
+X-ME-Message-Id: <x-me-msgid4@local>
+MIME-Version: 1.0
+
+email4
+EOF
+    $email4 =~ s/\r?\n/\r\n/gs;
+
+    $imap->select('INBOX');
+
+    xlog 'Append email1';
+    $imap->append('INBOX', $email1) || die $@;
+    my $res = $imap->fetch('1', '(threadid)');
+    my $threadId = $res->{1}{threadid}[0];
+    $self->assert_not_null($threadId);
+
+    xlog "Deliver email2";
+    my $msg = Cassandane::Message->new();
+    $msg->set_lines(split /\n/, $email2);
+    $self->{instance}->deliver($msg);
+
+    xlog "Assert email2 got discarded";
+    $res = $imap->fetch('2', '(threadid)');
+    $self->assert_null($res);
+
+    xlog 'Flag email1';
+    $imap->store('1', '+flags' ,'(\\Flagged)') || die $@;
+
+    xlog "Deliver email2";
+    $msg = Cassandane::Message->new();
+    $msg->set_lines(split /\n/, $email2);
+    $self->{instance}->deliver($msg);
+
+    xlog "Assert email2 got delivered";
+    $res = $imap->fetch('2', '(threadid)');
+    $self->assert_str_equals($threadId, $res->{2}{threadid}[0]);
+
+    xlog "Install allInThreadKeyword Sieve script";
+    $self->{instance}->install_sieve_script(<<'EOF'
+require ["x-cyrus-jmapquery", "x-cyrus-log", "variables", "fileinto"];
+if not
+  allof( not string :is "${stop}" "Y",
+    jmapquery text:
+  {
+        "allInThreadHaveKeyword" : "$Flagged"
+  }
+.
+  )
+{
+    discard;
+}
+EOF
+    );
+
+    xlog "Deliver email3";
+    $msg = Cassandane::Message->new();
+    $msg->set_lines(split /\n/, $email3);
+    $self->{instance}->deliver($msg);
+
+    xlog "Assert email3 got discarded";
+    $res = $imap->fetch('3', '(threadid)');
+    $self->assert_null($res);
+
+    xlog 'Flag email2';
+    $imap->store('2', '+flags' ,'(\\Flagged)') || die $@;
+
+    xlog "Deliver email3";
+    $msg = Cassandane::Message->new();
+    $msg->set_lines(split /\n/, $email3);
+    $self->{instance}->deliver($msg);
+
+    xlog "Assert email3 got delivered";
+    $res = $imap->fetch('3', '(threadid)');
+    $self->assert_str_equals($threadId, $res->{3}{threadid}[0]);
+
+    xlog "Install noneInThreadKeyword Sieve script";
+    $self->{instance}->install_sieve_script(<<'EOF'
+require ["x-cyrus-jmapquery", "x-cyrus-log", "variables", "fileinto"];
+if not
+  allof( not string :is "${stop}" "Y",
+    jmapquery text:
+  {
+        "noneInThreadHaveKeyword" : "$Flagged"
+  }
+.
+  )
+{
+    discard;
+}
+EOF
+    );
+
+    xlog "Deliver email4";
+    $msg = Cassandane::Message->new();
+    $msg->set_lines(split /\n/, $email4);
+    $self->{instance}->deliver($msg);
+
+    xlog "Assert email4 got discarded";
+    $res = $imap->fetch('4', '(threadid)');
+    $self->assert_null($res);
+
+    xlog 'Remove flags from all email';
+    $imap->store('1:*', '-flags' ,'(\\Flagged)') || die $@;
+
+    xlog "Deliver email4";
+    $msg = Cassandane::Message->new();
+    $msg->set_lines(split /\n/, $email4);
+    $self->{instance}->deliver($msg);
+
+    xlog "Assert email4 got delivered";
+    $res = $imap->fetch('4', '(threadid)');
+    $self->assert_str_equals($threadId, $res->{4}{threadid}[0]);
+}
+
+sub test_email_query_threadkeywords_sieve_multi_criteria
+    :min_version_3_5 :needs_component_sieve :needs_component_jmap :ConvCountedFlags :JMAPExtensions
+{
+    my ($self) = @_;
+    my $jmap = $self->{jmap};
+    my $imap = $self->{store}->get_client();
+
+
+    xlog "Install someInThreadKeyword Sieve script";
+    $self->{instance}->install_sieve_script(<<'EOF'
+require ["x-cyrus-jmapquery", "x-cyrus-log", "variables", "fileinto"];
+if
+  allof( not string :is "${stop}" "Y",
+    jmapquery text:
+  {
+        "someInThreadHaveKeyword" : "$Flagged"
+  }
+.
+  )
+{
+    fileinto "INBOX";
+}
+elsif
+  allof( not string :is "${stop}" "Y",
+    jmapquery text:
+  {
+        "someInThreadHaveKeyword" : "$Seen"
+  }
+.
+  )
+{
+    fileinto "INBOX";
+}
+else {
+    discard;
+}
+
+EOF
+    );
+
+    my $email1 = <<'EOF';
+From: addr1@local
+To: addr2@local
+Subject: email1
+Date: Wed, 25 Aug 2021 09:00:00 +0200
+User-Agent: Cyrus-JMAP
+Mime-Version: 1.0
+Message-Id: <msgid.email1@local>
+Content-Type: text/plain
+
+email1
+EOF
+    $email1 =~ s/\r?\n/\r\n/gs;
+
+    my $email2 = <<'EOF';
+From: addr2@local
+To: addr1@local
+Subject: Re: email1
+Date: Wed, 25 Aug 2021 09:00:00 +0200
+User-Agent: Cyrus-JMAP
+Mime-Version: 1.0
+Message-Id: <msgid.email2@local>
+In-Reply-To: <msgid.email1@local>
+References: <msgid.email1@local>
+X-ME-Message-Id: <x-me-msgid2@local>
+Content-Type: text/plain
+
+email2
+EOF
+    $email2 =~ s/\r?\n/\r\n/gs;
+
+    my $email3 = <<'EOF';
+From: addr1@local
+To: addr2@local
+Subject: Re: email1
+Date: Mon, 13 Apr 2020 10:00:00 +0200
+Message-Id: <msgid.email3@local>
+In-Reply-To: <msgid.email2@local>
+References: <msgid.email1@local> <msgid.email2@local>
+X-ME-Message-Id: <x-me-msgid3@local>
+MIME-Version: 1.0
+
+email3
+EOF
+    $email3 =~ s/\r?\n/\r\n/gs;
+
+    $imap->select('INBOX');
+
+    xlog 'Append email1';
+    $imap->append('INBOX', $email1) || die $@;
+    my $res = $imap->fetch('1', '(threadid)');
+    my $threadId = $res->{1}{threadid}[0];
+    $self->assert_not_null($threadId);
+
+    xlog "Deliver email2";
+    my $msg = Cassandane::Message->new();
+    $msg->set_lines(split /\n/, $email2);
+    $self->{instance}->deliver($msg);
+
+    xlog "Assert email2 got discarded";
+    $res = $imap->fetch('2', '(threadid)');
+    $self->assert_null($res);
+
+    xlog 'Flag email1';
+    $imap->store('1', '+flags' ,'(\\Flagged)') || die $@;
+
+    xlog "Deliver email2";
+    $msg = Cassandane::Message->new();
+    $msg->set_lines(split /\n/, $email2);
+    $self->{instance}->deliver($msg);
+
+    xlog "Assert email2 got delivered";
+    $res = $imap->fetch('2', '(threadid)');
+    $self->assert_str_equals($threadId, $res->{2}{threadid}[0]);
+
+    xlog 'Unflag email1';
+    $imap->store('1', '-flags' ,'(\\Flagged)') || die $@;
+
+    xlog "Deliver email3";
+    $msg = Cassandane::Message->new();
+    $msg->set_lines(split /\n/, $email3);
+    $self->{instance}->deliver($msg);
+
+    xlog "Assert email3 got discarded";
+    $res = $imap->fetch('3', '(threadid)');
+    $self->assert_null($res);
+
+    xlog 'Set email2 see';
+    $imap->store('2', '+flags' ,'(\\Seen)') || die $@;
+
+    xlog "Deliver email3";
+    $msg = Cassandane::Message->new();
+    $msg->set_lines(split /\n/, $email3);
+    $self->{instance}->deliver($msg);
+
+    xlog "Assert email3 got delivered";
+    $res = $imap->fetch('3', '(threadid)');
+    $self->assert_str_equals($threadId, $res->{3}{threadid}[0]);
+
+}
+
+
 1;
