@@ -7585,4 +7585,122 @@ EOF
 
 }
 
+sub test_calendarevent_get_organizer_attendee_nouri
+    :min_version_3_5 :needs_component_jmap
+{
+    my ($self) = @_;
+    my $jmap = $self->{jmap};
+    my $caldav = $self->{caldav};
+
+    $caldav->Request('PUT', 'Default/test.ics', <<'EOF',
+BEGIN:VCALENDAR
+VERSION:2.0
+PRODID:-//foo//bar//EN
+CALSCALE:GREGORIAN
+BEGIN:VEVENT
+SUMMARY:test
+ORGANIZER;CN=Test:
+DTSTART:20210328T010000Z
+DURATION:PT1H
+UID:testuid
+DTSTAMP:20201231T230000Z
+CREATED:20201231T230000Z
+END:VEVENT
+END:VCALENDAR
+EOF
+        'Content-Type' => 'text/calendar');
+    my $res = $jmap->CallMethods([
+        ['CalendarEvent/get', {
+            ids => ['testuid'],
+            properties => ['replyTo', 'participants'],
+        }, 'R1'],
+    ]);
+    $self->assert_not_null($res->[0][1]{list}[0]{id});
+    $self->assert_null($res->[0][1]{list}[0]{replyTo});
+    $self->assert_null($res->[0][1]{list}[0]{participants});
+
+    $caldav->Request('PUT', 'Default/test.ics', <<'EOF',
+BEGIN:VCALENDAR
+VERSION:2.0
+PRODID:-//foo//bar//EN
+CALSCALE:GREGORIAN
+BEGIN:VEVENT
+SUMMARY:test
+ATTENDEE;CN=Test:
+DTSTART:20210328T010000Z
+DURATION:PT1H
+UID:testuid
+DTSTAMP:20201231T230000Z
+CREATED:20201231T230000Z
+END:VEVENT
+END:VCALENDAR
+EOF
+        'Content-Type' => 'text/calendar');
+    $res = $jmap->CallMethods([
+        ['CalendarEvent/get', {
+            ids => ['testuid'],
+            properties => ['replyTo', 'participants'],
+        }, 'R1'],
+    ]);
+    $self->assert_not_null($res->[0][1]{list}[0]{id});
+    $self->assert_null($res->[0][1]{list}[0]{replyTo});
+    $self->assert_null($res->[0][1]{list}[0]{participants});
+
+    $caldav->Request('PUT', 'Default/test.ics', <<'EOF',
+BEGIN:VCALENDAR
+VERSION:2.0
+PRODID:-//foo//bar//EN
+CALSCALE:GREGORIAN
+BEGIN:VEVENT
+SUMMARY:test
+ORGANIZER:mailto:organizer@local
+ATTENDEE;CN=Test:
+DTSTART:20210328T010000Z
+DURATION:PT1H
+UID:testuid
+DTSTAMP:20201231T230000Z
+CREATED:20201231T230000Z
+END:VEVENT
+END:VCALENDAR
+EOF
+        'Content-Type' => 'text/calendar');
+    $res = $jmap->CallMethods([
+        ['CalendarEvent/get', {
+            ids => ['testuid'],
+            properties => ['replyTo', 'participants'],
+        }, 'R1'],
+    ]);
+    $self->assert_not_null($res->[0][1]{list}[0]{id});
+    $self->assert_not_null($res->[0][1]{list}[0]{replyTo});
+    $self->assert_not_null($res->[0][1]{list}[0]{participants});
+
+    $caldav->Request('PUT', 'Default/test.ics', <<'EOF',
+BEGIN:VCALENDAR
+VERSION:2.0
+PRODID:-//foo//bar//EN
+CALSCALE:GREGORIAN
+BEGIN:VEVENT
+SUMMARY:test
+ORGANIZER;CN=Test:
+ATTENDEE:attendee@local
+DTSTART:20210328T010000Z
+DURATION:PT1H
+UID:testuid
+DTSTAMP:20201231T230000Z
+CREATED:20201231T230000Z
+END:VEVENT
+END:VCALENDAR
+EOF
+        'Content-Type' => 'text/calendar');
+    $res = $jmap->CallMethods([
+        ['CalendarEvent/get', {
+            ids => ['testuid'],
+            properties => ['replyTo', 'participants'],
+        }, 'R1'],
+    ]);
+    $self->assert_not_null($res->[0][1]{list}[0]{id});
+    $self->assert_null($res->[0][1]{list}[0]{replyTo});
+    $self->assert_not_null($res->[0][1]{list}[0]{participants});
+}
+
 1;
