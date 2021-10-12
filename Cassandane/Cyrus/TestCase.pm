@@ -370,6 +370,10 @@ magic(LowEmailLimits => sub {
         conversations_max_guidinfolder => 2,
     );
 });
+magic(HTTPBearerAuth => sub {
+    # secret key is "01234567890123456789012345678901"
+    shift->config_set(http_jwt_key => 'HS256:MDEyMzQ1Njc4OTAxMjM0NTY3ODkwMTIzNDU2Nzg5MDE');
+});
 
 # Run any magic handlers indicated by the test name or attributes
 sub _run_magic

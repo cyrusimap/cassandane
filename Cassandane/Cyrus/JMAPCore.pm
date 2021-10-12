@@ -630,4 +630,48 @@ sub test_eventsource
     $self->assert_not_null($data->{changed}->{cassandane}->{Email});
 }
 
+sub test_http_auth_jwt
+    :min_version_3_5 :needs_component_jmap :JMAPExtensions :NoAltNameSpace :HTTPBearerAuth
+{
+    my ($self) = @_;
+    my $jmap = $self->{jmap};
+    my $http = $self->{instance}->get_service("http");
+
+    # {
+    #  "alg": "HS256",
+    #  "typ": "JWT"
+    # }
+    # {
+    #  "sub": "cassandane",
+    #  "iat": 1516239022
+    # }
+    my $jwt = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJjYXNzYW5kYW5lIiwiaWF0IjoxNTE2MjM5MDIyfQ.IdXjI6S5yqo5Rb_8C8e5cu0YEp-4rsKfN6kb6xls-dk";
+
+    xlog "Send valid JSON Web Token";
+    my $RawRequest = {
+        headers => {
+            'Authorization' => "Bearer $jwt",
+        },
+        content => '',
+    };
+    my $RawResponse = $jmap->ua->get($jmap->uri(), $RawRequest);
+    if ($ENV{DEBUGJMAP}) {
+        warn "JMAP " . Dumper($RawRequest, $RawResponse);
+    }
+    $self->assert_str_equals('200', $RawResponse->{status});
+
+    xlog "Send invalid JSON Web Token";
+    $RawRequest = {
+        headers => {
+            'Authorization' => "Bearer $jwt" . "-xxx",
+        },
+        content => '',
+    };
+    $RawResponse = $jmap->ua->get($jmap->uri(), $RawRequest);
+    if ($ENV{DEBUGJMAP}) {
+        warn "JMAP " . Dumper($RawRequest, $RawResponse);
+    }
+    $self->assert_str_equals('401', $RawResponse->{status});
+}
+
 1;
