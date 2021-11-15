@@ -1381,10 +1381,12 @@ sub assert_sieve_exists
 
     my $sieve_dir = $instance->get_sieve_script_dir($user);
 
-    $self->assert(( -f "$sieve_dir/$scriptname.bc" ));
+    $self->assert(( -f "$sieve_dir/$scriptname.bc" ),
+                  "$sieve_dir/$scriptname.bc: file not found");
 
     if ($bc_only == 0) {
-        $self->assert(( -f "$sieve_dir/$scriptname.script" ));
+        $self->assert(( -f "$sieve_dir/$scriptname.script" ),
+                      "$sieve_dir/$scriptname.script: file not found");
     }
 }
 
@@ -1394,10 +1396,12 @@ sub assert_sieve_not_exists
 
     my $sieve_dir = $instance->get_sieve_script_dir($user);
 
-    $self->assert(( ! -f "$sieve_dir/$scriptname.bc" ));
+    $self->assert(( ! -f "$sieve_dir/$scriptname.bc" ),
+                  "$sieve_dir/$scriptname.bc: file exists");
 
     if ($bc_only == 0) {
-        $self->assert(( ! -f "$sieve_dir/$scriptname.script" ));
+        $self->assert(( ! -f "$sieve_dir/$scriptname.script" ),
+                      "$sieve_dir/$scriptname.script: file exists");
     }
 }
 
@@ -1407,7 +1411,8 @@ sub assert_sieve_active
 
     my $sieve_dir = $instance->get_sieve_script_dir($user);
 
-    $self->assert(( -l "$sieve_dir/defaultbc" ));
+    $self->assert(( -l "$sieve_dir/defaultbc" ),
+                  "$sieve_dir/defaultbc: missing or not a symlink");
     $self->assert_str_equals("$scriptname.bc", readlink "$sieve_dir/defaultbc");
 }
 
@@ -1431,7 +1436,8 @@ sub assert_sieve_matches
 
     my $bcname = "$sieve_dir/$scriptname.bc";
 
-    $self->assert(( -f $bcname ));
+    $self->assert(( -f $bcname ),
+                  "$sieve_dir/$scriptname.bc: file not found");
 
     # compile $scriptcontent and compare digests of bytecode
     my (undef, $tmp) = tempfile('scriptXXXXX', OPEN => 0,
